@@ -1,8 +1,6 @@
 package com.asnidev.sysreadoutmonitor
 
 import android.app.Application
-import android.os.Build
-import android.provider.Settings
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -11,13 +9,16 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.asnidev.sysreadoutmonitor.data.MonitorPrefs
 import com.asnidev.sysreadoutmonitor.data.SettingsStore
+import com.asnidev.sysreadoutmonitor.log.Access
 import com.asnidev.sysreadoutmonitor.monitor.ShizukuBridge
 import com.asnidev.sysreadoutmonitor.page.Coordinator
+import com.asnidev.sysreadoutmonitor.page.Env
 import com.asnidev.sysreadoutmonitor.page.Page
 import com.asnidev.sysreadoutmonitor.page.Samplers
 import com.asnidev.sysreadoutmonitor.term.Prompt
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -33,16 +34,16 @@ class MonitorViewModel(app: Application) : AndroidViewModel(app) {
     private val current: MonitorPrefs get() = _prefs.value ?: MonitorPrefs()
 
     val shizuku = ShizukuBridge(app)
-    val coordinator = Coordinator(Samplers.create(app, shizuku) { current }) {
-        current.intervalSec * 1000L
-    }
+    val env = Env(app, shizuku) { current }
+    val coordinator = Coordinator(Samplers.create(env)) { current.intervalSec * 1000L }
 
-    val prompt = Prompt.text(
-        Prompt.host(Settings.Global.getString(app.contentResolver, Settings.Global.DEVICE_NAME), Build.MODEL),
-    )
+    val prompt = Prompt.text(env.hostName)
 
     /** Live text size; saved when a pinch ends. */
     var textSp by mutableFloatStateOf(MonitorPrefs.DEFAULT_SP)
+
+    /** Runtime permissions already asked for in this session (see MainActivity.runtime). */
+    val asked = HashSet<Access>()
 
     /** A page to switch to (debug extra, or a tap that leads to another page). */
     var pendingJump by mutableStateOf<Page?>(null)
@@ -53,6 +54,8 @@ class MonitorViewModel(app: Application) : AndroidViewModel(app) {
             textSp = p.textSp
             _prefs.value = p
         }
+        // Shizuku connecting or going away changes what the visible page can show.
+        viewModelScope.launch { shizuku.state.drop(1).collect { coordinator.poke() } }
     }
 
     /** Samples the visible page until cancelled; the activity runs this while started. */

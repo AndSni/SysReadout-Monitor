@@ -30,6 +30,8 @@ import android.os.StatFs
 import android.os.SystemClock
 import android.os.storage.StorageManager
 import android.provider.Settings
+import android.system.Os
+import android.system.OsConstants
 import android.telephony.CellIdentityNr
 import android.telephony.CellInfoGsm
 import android.telephony.CellInfoLte
@@ -113,15 +115,49 @@ class ProbeReader(private val context: Context) {
 
     fun stopWatchers() = updateWatchers(emptyList())
 
-    /** "key   value" rows for [ids], in order. */
-    fun sample(ids: List<String>): List<String> {
+    /** (id, value) for each of [ids] that has a value, in order. */
+    fun values(ids: List<String>): List<Pair<String, String>> {
         battery = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
         meminfo = readMeminfo()
         updateRates()
         return ids.mapNotNull { id ->
-            runCatching { read(id) }.getOrNull()?.let { id.padEnd(KEY_WIDTH) + it }
+            runCatching { read(id) }.getOrNull()?.let { id to it }
         }
     }
+
+    // --- raw numbers for meters and colours; call after values() so they share its readings ---
+
+    fun memory(): ActivityManager.MemoryInfo = ActivityManager.MemoryInfo().also(am::getMemoryInfo)
+
+    /** (used, total) swap in bytes, or null when the kernel doesn't say. */
+    fun swapBytes(): Pair<Long, Long>? {
+        val total = meminfo["SwapTotal"] ?: return null
+        return (total - (meminfo["SwapFree"] ?: total)) * 1024 to total * 1024
+    }
+
+    fun batteryLevel(): Int = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+
+    fun batteryTempC(): Double = (battery?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) ?: 0) / 10.0
+
+    /** Current clock of each possible core in kHz; null when offline or not a real reading (emulators). */
+    fun coreClocks(): List<Long?> {
+        val possible = cpuCount("/sys/devices/system/cpu/possible") ?: Runtime.getRuntime().availableProcessors()
+        return (0 until possible).map { core ->
+            readText("/sys/devices/system/cpu/cpu$core/cpufreq/scaling_cur_freq")?.trim()?.toLongOrNull()?.takeIf { it >= 100_000 }
+        }
+    }
+
+    /** (available, total) bytes of the file system holding [dir]. */
+    fun storageBytes(dir: File): Pair<Long, Long> = StatFs(dir.path).let { it.availableBytes to it.totalBytes }
+
+    /** Mounted removable volumes (SD cards, USB drives) with their user-visible names. */
+    fun removableVolumes(): List<Pair<String, File>> =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            storage.storageVolumes.filter { it.isRemovable && it.state == Environment.MEDIA_MOUNTED }
+                .mapNotNull { v -> v.directory?.let { v.getDescription(context) to it } }
+        } else {
+            context.getExternalFilesDirs(null).drop(1).filterNotNull().map { "removable" to it }
+        }
 
     private fun read(id: String): String? {
         val needs = ProbeCatalog.byId[id]?.needs
@@ -199,7 +235,26 @@ class ProbeReader(private val context: Context) {
             ?.substringAfter(':')?.trim()?.substringBefore(' ')?.toLongOrNull()
         val rss = field("VmRSS")?.let { bytes(it * 1024) } ?: "?"
         val heap = Runtime.getRuntime().let { it.totalMemory() - it.freeMemory() }
-        return "pid ${Process.myPid()}  rss $rss  heap ${bytes(heap)}  thr ${field("Threads") ?: "?"}"
+        val cpu = selfCpu()?.let { String.format(Locale.US, "  cpu %.1f%%", it) } ?: ""
+        return "pid ${Process.myPid()}$cpu  rss $rss  heap ${bytes(heap)}  thr ${field("Threads") ?: "?"}"
+    }
+
+    private var selfTicks = -1L
+    private var selfAt = 0L
+
+    /** This process's CPU use since the last call, in % of one core (utime + stime from /proc/self/stat). */
+    private fun selfCpu(): Double? {
+        // Fields after the ")" that ends the process name: utime and stime are the 12th and 13th.
+        val f = readText("/proc/self/stat")?.substringAfterLast(')')?.trim()?.split(' ') ?: return null
+        val ticks = (f.getOrNull(11)?.toLongOrNull() ?: return null) + (f.getOrNull(12)?.toLongOrNull() ?: return null)
+        val now = SystemClock.elapsedRealtime()
+        val was = selfTicks
+        val wasAt = selfAt
+        selfTicks = ticks
+        selfAt = now
+        if (was < 0 || now <= wasAt) return null
+        val hz = Os.sysconf(OsConstants._SC_CLK_TCK).coerceAtLeast(1)
+        return (ticks - was) * 1000.0 / hz / (now - wasAt) * 100
     }
 
     private fun cpu(): String {
@@ -663,8 +718,6 @@ class ProbeReader(private val context: Context) {
     private fun readText(path: String): String? = runCatching { File(path).readText() }.getOrNull()
 
     companion object {
-        const val KEY_WIDTH = 6
-
         private val THERMAL = listOf("none", "light", "moderate", "SEVERE", "CRITICAL", "EMERGENCY", "SHUTDOWN")
 
         private const val SYNODIC = 29.530588853 // days between new moons
@@ -711,7 +764,7 @@ class ProbeReader(private val context: Context) {
         private val WIFI_STANDARDS = mapOf(1 to "802.11a/b/g", 4 to "Wi-Fi 4", 5 to "Wi-Fi 5", 6 to "Wi-Fi 6", 7 to "802.11ad", 8 to "Wi-Fi 7")
 
         /** Android's signal level 0..4 in words: a terminal spells it out rather than drawing bars. */
-        private fun strength(level: Int): String = when {
+        fun strength(level: Int): String = when {
             level >= 4 -> "very strong"
             level == 3 -> "strong"
             level == 2 -> "medium"
