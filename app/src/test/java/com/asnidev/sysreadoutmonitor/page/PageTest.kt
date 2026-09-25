@@ -14,7 +14,7 @@ class PageTest {
     fun userOrderFirstThenTheRestInDefaultOrder() {
         val pages = Page.arrange(listOf("journal", "cpu", "nonsense"), setOf("apps"))
         assertEquals(
-            listOf(Page.JOURNAL, Page.CPU, Page.SYS, Page.MEM, Page.POWER, Page.NET, Page.SCAN, Page.SENSORS, Page.STORAGE, Page.CONF),
+            listOf(Page.JOURNAL, Page.CPU, Page.SYS, Page.MEM, Page.POWER, Page.NET, Page.SCAN, Page.SENSORS, Page.STORAGE, Page.SHELL, Page.CONF),
             pages,
         )
     }

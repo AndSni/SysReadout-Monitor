@@ -12,6 +12,8 @@ enum class Page(val tab: String, val command: String) {
     SENSORS("sensors", "sensors"),
     STORAGE("storage", "df -h"),
     JOURNAL("journal", "journalctl -f"),
+    /** Takes commands; has no sampler. */
+    SHELL("shell", "sh"),
     CONF("conf", "nano ~/.config/srm.conf");
 
     companion object {

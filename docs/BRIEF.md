@@ -139,6 +139,7 @@ flavour text for the prompt line.
 | 8 | `storage` | `df -h` | internal storage with a meter (`fs`); removable volumes (`sd`); **new:** app sizes (app, data, cache) for the largest apps via `StorageStatsManager` (usage access) |
 | 5b | `scan` | `nmcli device wifi list; bluetoothctl scan on` | *Added 2026-09-25 at the user's request.* Every Wi-Fi access point (in-use `*`, dBm, % on nmcli's scale, ±dB spread and how many recent scans saw it, bars, band, channel, SSID) to find the best network, and every Bluetooth device (paired ones even when silent, then nearby named/unnamed) with dBm, %, a stronger/weaker arrow and bars, to find a lost device such as a watch. Tap a device to track it: full-width meter on top; if it's connected to the phone (and so not advertising) its signal is read over the link with GATT `readRemoteRssi`. Scans only while visible (BLE low-latency scan; Wi-Fi every 30 s, Android's limit). Needs location (Wi-Fi) and nearby devices (Bluetooth) |
 | 9 | `journal` | `journalctl -f` | the launcher's event stream: `net power bat therm mem pkg` (system), `fg svc scrn lock` (usage), `proc conn logE logW` (Shizuku), `dns` (DNS monitor), `ntf` (notifications). Newest at the bottom, auto-scrolls while at the bottom, timestamps on (dim), keys coloured by source |
+| 9b | `shell` | *(the tab takes input)* | *Added 2026-09-25 at the user's request.* A line-based shell: type a command, see its output. Runs `sh -c` in its own process group (`setsid`), as the shell user through Shizuku (the access adb has) or else as the app's own user; the prompt shows which (`[shell@…]$` / `[u0_a195@…]$`). `cd` carries over (the wrapper reports `pwd`), variables don't; no tty, so full-screen programs don't work; stdin is closed. `^C` sends SIGINT to the group, SIGKILL 0.7 s later. Keys row: `^C ↑ ↓ clear`; history with ↑/↓. A running command is stopped when the app leaves the screen. The only page with a cursor (the text field's caret) |
 | 10 | `conf` | `nano ~/.config/srm.conf` | refresh interval (1/2/5/10 s; shell-based tables at least 5 s); which pages are shown and their order; access status with grant actions (usage access, notification access, Shizuku with the start instructions, DNS monitor with its consent and caveats, each runtime permission); reverse-DNS toggle; logcat level (errors / +warnings); show notification titles; about, version, licences |
 
 GPS and satellites switch the GPS on, so they run only while the `sensors` page is visible. Say so
@@ -208,7 +209,14 @@ Commit at the end of each milestone with the checks green.
 - **Background work** that takes seconds (reverse DNS, sizing every app) runs on the samplers'
   serial dispatcher in `Env.scope`, is cancelled when its page leaves the screen, and pokes the
   coordinator when done.
-- **Debug extras:** `--es page <tab>` (`--es anchor shizuku` scrolls conf to that line),
+- **No closing prompt** (user request, 2026-09-25): monitor pages end with their last row; a
+  trailing prompt with a blinking cursor looked like it was waiting for input. Only the shell tab
+  has a cursor. A paused page still ends with `^Z` / `[1]+ Stopped`.
+- **Long press copies** (user request): a long press on any row copies its whole logical line
+  (however it wrapped; meters as drawn) with a haptic tick and a 0.6 s highlight; Android 12 and
+  older also get a "copied" toast. Taps on links and scrolling are unaffected.
+- **Debug extras:** `--es run "<cmd>"` types into the shell, `--ez interrupt true` is ^C;
+  `--es page <tab>` (`--es anchor shizuku` scrolls conf to that line),
   `--ef textsp <sp>` (not saved), `--es track <bt address>`.
 - **Opens on sys** (user request, 2026-09-25): the app starts on `sys` every time; conf
   `remember_page = on` brings back the brief's "remembers the last page".
@@ -234,5 +242,9 @@ Commit at the end of each milestone with the checks green.
   app's shell service killed: no crash, reconnects ~2 s after Shizuku is back.
 - **DNS monitor:** started as in CLAUDE.md; lookups from `ping` (root) and Chrome appeared per app
   on net and in the journal; stopped cleanly (`tun0` gone).
+- **After removing the closing prompt** (no cursor blinking): 1.1 % (sys), 1.2 % (cpu, shell)
+  with the page visible, 0.1–0.2 % in the background (`top`'s floor).
+- **Shell tab:** as shell through Shizuku and as the app user; `cd` carries over; `^C` removes a
+  running `logcat` within ~1.5 s, leaving the app within ~2.5 s.
 - **Still open:** the user's check on their phone (debug build installed 2026-09-25) and taps,
   which only the user tests.

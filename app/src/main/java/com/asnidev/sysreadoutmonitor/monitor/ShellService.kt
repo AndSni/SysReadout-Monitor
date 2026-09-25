@@ -2,7 +2,9 @@ package com.asnidev.sysreadoutmonitor.monitor
 
 import java.io.File
 import java.net.InetAddress
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.TimeUnit
 import kotlin.system.exitProcess
 
@@ -14,6 +16,8 @@ import kotlin.system.exitProcess
 class ShellService : IShellService.Stub() {
 
     private val lookups = Executors.newFixedThreadPool(4)
+    private val commands = ConcurrentHashMap<Int, Running>()
+    private val ids = AtomicInteger()
 
     override fun destroy() {
         lookups.shutdownNow()
@@ -34,6 +38,21 @@ class ShellService : IShellService.Stub() {
     }
 
     override fun readFile(path: String): String = runCatching { File(path).readText() }.getOrDefault("")
+
+    override fun start(script: String): Int {
+        val id = ids.incrementAndGet()
+        commands[id] = Running(script)
+        return id
+    }
+
+    override fun read(id: Int): String {
+        val command = commands[id] ?: return Running.EXIT + "-1"
+        return command.read().also { if (it.startsWith(Running.EXIT)) commands.remove(id) }
+    }
+
+    override fun interrupt(id: Int, pid: Int) {
+        commands[id]?.interrupt(pid)
+    }
 
     override fun resolve(ips: String): String {
         val jobs = ips.lines().filter { it.isNotBlank() }.map { ip ->

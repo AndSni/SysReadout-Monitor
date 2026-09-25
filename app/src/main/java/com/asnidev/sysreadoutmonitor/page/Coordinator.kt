@@ -61,7 +61,7 @@ class Coordinator(
     }
 
     private suspend fun drive(page: Page) {
-        val sampler = samplers.getValue(page)
+        val sampler = samplers[page] ?: return // the shell samples nothing
         sampler.start()
         try {
             while (true) {

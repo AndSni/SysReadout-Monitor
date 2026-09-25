@@ -1,7 +1,8 @@
 package com.asnidev.sysreadoutmonitor.page
 
 object Samplers {
-    fun create(env: Env): Map<Page, PageSampler> = Page.entries.associateWith { page ->
+    /** Every page but the shell, which runs the user's commands instead of sampling. */
+    fun create(env: Env): Map<Page, PageSampler> = (Page.entries - Page.SHELL).associateWith { page ->
         when (page) {
             Page.SYS -> SysSampler(env)
             Page.CPU -> CpuSampler(env)
@@ -14,6 +15,7 @@ object Samplers {
             Page.STORAGE -> StorageSampler(env)
             Page.JOURNAL -> JournalSampler(env)
             Page.CONF -> ConfSampler(env)
+            Page.SHELL -> error("the shell has no sampler")
         }
     }
 }

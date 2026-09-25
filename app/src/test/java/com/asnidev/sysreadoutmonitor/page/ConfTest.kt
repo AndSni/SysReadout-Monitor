@@ -29,7 +29,7 @@ class ConfTest {
     @Test
     fun movingAPageKeepsHiddenOnesInPlace() {
         val p = Conf.apply(d.copy(hidden = setOf("mem")), ConfAction.MovePage(Page.POWER, -1))
-        assertEquals(listOf("sys", "cpu", "power", "mem", "net", "scan", "apps", "sensors", "storage", "journal"), p.order)
+        assertEquals(listOf("sys", "cpu", "power", "mem", "net", "scan", "apps", "sensors", "storage", "journal", "shell"), p.order)
         assertEquals(listOf(Page.SYS, Page.CPU, Page.POWER, Page.NET), Page.arrange(p.order, p.hidden).take(4))
         // Already first: nothing to do.
         assertEquals(d, Conf.apply(d, ConfAction.MovePage(Page.SYS, -1)))

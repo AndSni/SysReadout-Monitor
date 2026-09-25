@@ -28,7 +28,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asnidev.sysreadoutmonitor.MonitorViewModel
@@ -77,10 +76,8 @@ fun MonitorScreen(vm: MonitorViewModel, onTap: (Tap) -> Unit) {
         }
         val measurer = rememberTextMeasurer()
         val density = LocalDensity.current
-        // Hack is monospaced: one character's advance and the line height make a cell.
-        val sample = remember(style) { measurer.measure("0".repeat(SAMPLE), style).size }
-        val charWidth = sample.width / SAMPLE.toFloat()
-        val cell = with(density) { DpSize(charWidth.toDp(), sample.height.toDp()) }
+        // Hack is monospaced: one character's advance gives the number of columns.
+        val charWidth = remember(style) { measurer.measure("0".repeat(SAMPLE), style).size.width / SAMPLE.toFloat() }
 
         TabStrip(pages, pager.currentPage) { scope.launch { pager.animateScrollToPage(it) } }
         BoxWithConstraints(
@@ -90,22 +87,24 @@ fun MonitorScreen(vm: MonitorViewModel, onTap: (Tap) -> Unit) {
             HorizontalPager(pager, key = { pages[it].tab }) { i ->
                 val page = pages[i]
                 val lines by vm.coordinator.content(page).collectAsState()
-                TerminalPage(
-                    page = page,
-                    lines = lines,
-                    prompt = vm.prompt,
-                    style = style,
-                    cols = cols,
-                    cell = cell,
-                    padding = PADDING,
-                    list = lists.getValue(page),
-                    active = pager.settledPage == i,
-                    paused = page in paused,
-                    anchor = vm.pendingAnchor.takeIf { pager.settledPage == i && vm.pendingJump == null },
-                    onAnchored = { vm.pendingAnchor = null },
-                    onPrompt = { vm.coordinator.togglePause(page) },
-                    onTap = onTap,
-                )
+                if (page == Page.SHELL) {
+                    ShellPage(vm.shell, style, cols, PADDING, lists.getValue(page), active = pager.settledPage == i, onTap = onTap)
+                } else {
+                    TerminalPage(
+                        page = page,
+                        lines = lines,
+                        prompt = vm.prompt,
+                        style = style,
+                        cols = cols,
+                        padding = PADDING,
+                        list = lists.getValue(page),
+                        paused = page in paused,
+                        anchor = vm.pendingAnchor.takeIf { pager.settledPage == i && vm.pendingJump == null },
+                        onAnchored = { vm.pendingAnchor = null },
+                        onPrompt = { vm.coordinator.togglePause(page) },
+                        onTap = onTap,
+                    )
+                }
             }
         }
     }

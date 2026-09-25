@@ -126,6 +126,13 @@ class ShizukuBridge(private val context: Context) {
             line.split('\t').takeIf { it.size == 2 }?.let { it[0] to it[1] }
         }?.toMap().orEmpty()
 
+    // The shell tab's commands, run as the shell user (see Running).
+    suspend fun start(script: String): Int? = call { it.start(script) }
+    suspend fun read(id: Int): String? = call { it.read(id) }
+    suspend fun interrupt(id: Int, pid: Int) {
+        call { it.interrupt(id, pid) }
+    }
+
     private suspend fun <T> call(block: (IShellService) -> T): T? = withContext(Dispatchers.IO) {
         val s = service ?: return@withContext null
         try {

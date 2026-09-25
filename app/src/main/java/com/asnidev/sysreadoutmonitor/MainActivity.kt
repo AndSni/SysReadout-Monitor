@@ -61,6 +61,11 @@ class MainActivity : ComponentActivity() {
         vm.resumed()
     }
 
+    override fun onStop() {
+        super.onStop()
+        vm.shell.stopForBackground()
+    }
+
     private fun onTap(tap: Tap) {
         when (tap) {
             is Tap.Goto -> vm.jump(tap.page, tap.anchor)
@@ -135,7 +140,8 @@ class MainActivity : ComponentActivity() {
     /**
      * Debug builds only, so states can be looked at without tapping through the UI:
      * `--es page cpu` opens a page (`--es anchor shizuku` scrolls to that line), `--ef textsp 20`
-     * sets the text size (not saved), `--es track <address>` follows a Bluetooth device.
+     * sets the text size (not saved), `--es track <address>` follows a Bluetooth device,
+     * `--es run "<command>"` types a command into the shell tab, `--ez interrupt true` is ^C.
      */
     private fun debugExtras(intent: Intent?) {
         if (!BuildConfig.DEBUG || intent == null) return
@@ -144,6 +150,8 @@ class MainActivity : ComponentActivity() {
             vm.textSp = intent.getFloatExtra("textsp", vm.textSp).coerceIn(MonitorPrefs.MIN_SP, MonitorPrefs.MAX_SP)
         }
         intent.getStringExtra("track")?.let { vm.track(it) }
+        intent.getStringExtra("run")?.let { vm.shell.submit(it) }
+        if (intent.getBooleanExtra("interrupt", false)) vm.shell.interrupt()
     }
 
 }

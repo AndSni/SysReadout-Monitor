@@ -19,6 +19,7 @@ import com.asnidev.sysreadoutmonitor.page.Coordinator
 import com.asnidev.sysreadoutmonitor.page.Env
 import com.asnidev.sysreadoutmonitor.page.Page
 import com.asnidev.sysreadoutmonitor.page.Samplers
+import com.asnidev.sysreadoutmonitor.page.Shell
 import com.asnidev.sysreadoutmonitor.term.Prompt
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,6 +44,9 @@ class MonitorViewModel(app: Application) : AndroidViewModel(app) {
     val coordinator = Coordinator(Samplers.create(env), env.serial) { current.intervalSec * 1000L }
 
     val prompt = Prompt.text(env.hostName)
+
+    /** The shell tab's session: kept while the app lives, so its history survives page switches. */
+    val shell = Shell(env, viewModelScope)
 
     /** Live text size; saved when a pinch ends. */
     var textSp by mutableFloatStateOf(MonitorPrefs.DEFAULT_SP)
@@ -73,7 +77,12 @@ class MonitorViewModel(app: Application) : AndroidViewModel(app) {
         }
         env.poke = coordinator::poke
         // Shizuku connecting or going away changes what the visible page can show.
-        viewModelScope.launch { shizuku.state.drop(1).collect { coordinator.poke() } }
+        viewModelScope.launch {
+            shizuku.state.drop(1).collect {
+                coordinator.poke()
+                shell.refresh()
+            }
+        }
         // Bring the DNS monitor back after the app restarts, if the user left it on.
         viewModelScope.launch {
             val p = _prefs.filterNotNull().first()

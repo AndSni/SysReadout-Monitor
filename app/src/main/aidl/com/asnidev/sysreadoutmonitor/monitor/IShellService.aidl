@@ -13,4 +13,13 @@ interface IShellService {
 
     // Newline-separated IPs in, "ip<TAB>hostname" lines out (reverse DNS; unresolved IPs omitted).
     String resolve(String ips) = 3;
+
+    // The shell tab: starts a script (see Running), returns its id.
+    int start(String script) = 4;
+
+    // Output of command [id] since the last read; Running.EXIT + status once it has ended.
+    String read(int id) = 5;
+
+    // ^C for command [id], whose process group is [pid].
+    void interrupt(int id, int pid) = 6;
 }
