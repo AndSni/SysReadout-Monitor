@@ -1,0 +1,1 @@
+Everything your phone reveals about itself, as a KDE Konsole terminal

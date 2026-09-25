@@ -1,0 +1,92 @@
+name: release-tag
+
+# Builds a signed release APK for a pushed version tag (v1.2.3) and publishes
+# it as a permanent GitHub Release at that tag. F-Droid's reproducible-build
+# check (Binaries + AllowedAPKSigningKeys in .fdroid.yml) diffs its own
+# from-source build against this file, so it must never be overwritten.
+#
+# Signing secrets: see release.yml. Without them the APK is debug-signed and
+# won't match AllowedAPKSigningKeys.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re-)publish a release for"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          # Same major version as F-Droid's build server, so its from-source
+          # build can match this APK byte for byte.
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Configure release signing
+        env:
+          KS_B64: ${{ secrets.RELEASE_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            {
+              # Absolute path: app/build.gradle.kts resolves storeFile against the
+              # :app module dir, so a bare relative name would miss.
+              echo "storeFile=$RUNNER_TEMP/release.jks"
+              echo "storePassword=$KS_PASS"
+              echo "keyAlias=$KEY_ALIAS"
+              echo "keyPassword=$KEY_PASS"
+            } > keystore.properties
+            echo "Release signing configured."
+          else
+            echo "No RELEASE_KEYSTORE_B64 secret — APK will be debug-signed."
+          fi
+
+      - name: Assemble release
+        run: ./gradlew :app:assembleRelease --stacktrace
+
+      - name: Stage APK
+        id: stage
+        run: |
+          set -e
+          APK=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
+          VNAME=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          echo "vname=$VNAME" >> "$GITHUB_OUTPUT"
+          mkdir -p release-artifacts
+          # The asset name must stay exactly SysReadout-Monitor.apk: .fdroid.yml
+          # Binaries and the README link point at it.
+          cp "$APK" release-artifacts/SysReadout-Monitor.apk
+
+      - name: Publish versioned release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ inputs.tag || github.ref_name }}"
+          VCODE=$(grep -oP 'versionCode = \K[0-9]+' app/build.gradle.kts)
+          NOTES="metadata/en-US/changelogs/$VCODE.txt"
+          {
+            [ -f "$NOTES" ] && cat "$NOTES" && echo
+            echo "Install: https://github.com/${GITHUB_REPOSITORY}/releases/download/$TAG/SysReadout-Monitor.apk"
+            echo
+            echo "Signing certificate SHA-256: 3b69c2d7c54417c453b4c676f23e36119374a68e1109c323a0c251581c6005dc"
+          } > release-notes.md
+          gh release create "$TAG" release-artifacts/SysReadout-Monitor.apk \
+            --title "SysReadout Monitor ${{ steps.stage.outputs.vname }}" \
+            --notes-file release-notes.md

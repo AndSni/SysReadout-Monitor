@@ -1,0 +1,1 @@
+First release: eleven Konsole-style pages (sys, cpu, mem, power, net, scan, apps, sensors, storage, journal, shell) plus conf. Signal finder for Wi-Fi and Bluetooth, a line-based shell, long-press to copy, pinch to zoom. Shizuku is optional, with a guided setup.
