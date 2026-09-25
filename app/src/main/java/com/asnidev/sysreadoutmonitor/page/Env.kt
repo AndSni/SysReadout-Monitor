@@ -31,6 +31,9 @@ class Env(val context: Context, val shizuku: ShizukuBridge, val prefs: () -> Mon
     /** For slow work a sampler starts and waits for (reverse DNS, app sizes); samplers cancel their jobs in stop(). */
     val scope = CoroutineScope(SupervisorJob() + serial)
 
+    /** Licences the user opened on the conf page; set from the UI thread. */
+    @Volatile var openLicences: Set<String> = emptySet()
+
     /** Asks for a fresh sample of the visible page, e.g. when slow work finished. */
     var poke: () -> Unit = {}
 

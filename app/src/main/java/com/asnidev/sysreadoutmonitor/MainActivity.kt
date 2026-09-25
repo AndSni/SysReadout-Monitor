@@ -1,5 +1,6 @@
 package com.asnidev.sysreadoutmonitor
 
+import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Intent
@@ -19,6 +20,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.asnidev.sysreadoutmonitor.data.MonitorPrefs
 import com.asnidev.sysreadoutmonitor.log.Access
+import com.asnidev.sysreadoutmonitor.monitor.DnsVpnService
 import com.asnidev.sysreadoutmonitor.monitor.NotifListener
 import com.asnidev.sysreadoutmonitor.monitor.ShizukuState
 import com.asnidev.sysreadoutmonitor.page.Page
@@ -32,6 +34,11 @@ class MainActivity : ComponentActivity() {
 
     private val askPermissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         vm.resumed()
+    }
+
+    // Android's one-time "allow this VPN?" dialog for the DNS monitor.
+    private val vpnConsent = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) vm.setDnsMonitor(true)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,7 +64,17 @@ class MainActivity : ComponentActivity() {
         when (tap) {
             is Tap.Goto -> vm.pendingJump = tap.page
             is Tap.Grant -> grant(tap.access)
+            is Tap.Conf -> vm.conf(tap.action)
+            is Tap.DnsMonitor -> dnsMonitor(tap.on)
+            Tap.AppSettings -> open(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)))
+            is Tap.Url -> open(Intent(Intent.ACTION_VIEW, Uri.parse(tap.url)))
         }
+    }
+
+    private fun dnsMonitor(on: Boolean) {
+        if (!on) return vm.setDnsMonitor(false)
+        val ask = DnsVpnService.consentIntent(this)
+        if (ask == null) vm.setDnsMonitor(true) else vpnConsent.launch(ask)
     }
 
     /** The same grant flows as the launcher: nothing is asked for until the user taps what needs it. */

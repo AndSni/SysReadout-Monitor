@@ -187,3 +187,24 @@ Commit at the end of each milestone with the checks green.
 - `./gradlew :app:assembleDebug :app:lintDebug :app:testDebugUnitTest` is green, and the CI release
   build is byte-identical to a local build.
 - The user has installed it on the phone and confirmed the pages look right.
+
+## 8. As built (decisions made while building)
+
+- **Wrapping, not cutting.** See §3: lines wrap to the screen's columns at a hanging indent.
+- **Access lines** say what is missing and what a tap does: `! needs shizuku, tap to set up`
+  (opens the Shizuku app), `… tap to install it`, `… permission, tap to allow`, `! needs usage
+  access, tap to grant`. A runtime permission Android no longer offers (refused twice) opens the
+  app's settings instead. `! needs the dns monitor, tap to set it up` goes to conf, where the caveats
+  are.
+- **Journal:** the first visit backfills the last hour of usage events, everything the DNS and
+  notification logs hold, and the last 20 logcat lines; later visits catch up from where they left
+  off. Network/power/thermal/memory changes and installs that happened while away are reported
+  on return. Process and connection events need a baseline, so they only appear while the page is
+  open. 500 entries kept. Each source can be switched off in conf `[journal]`.
+- **Extras beyond the launcher:** nearby Wi-Fi networks as a table, per-satellite table, running
+  foreground services, a `df` table (read-only system images dimmed rather than flagged as full),
+  app sizes, the monitor's own CPU use in `self`.
+- **Background work** that takes seconds (reverse DNS, sizing every app) runs on the samplers'
+  serial dispatcher in `Env.scope`, is cancelled when its page leaves the screen, and pokes the
+  coordinator when done.
+- **Debug extras:** `--es page <tab>`, `--ef textsp <sp>` (not saved).

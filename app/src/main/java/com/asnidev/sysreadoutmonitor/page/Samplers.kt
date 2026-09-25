@@ -1,8 +1,5 @@
 package com.asnidev.sysreadoutmonitor.page
 
-import com.asnidev.sysreadoutmonitor.term.Line
-import com.asnidev.sysreadoutmonitor.term.comment
-
 object Samplers {
     fun create(env: Env): Map<Page, PageSampler> = Page.entries.associateWith { page ->
         when (page) {
@@ -14,12 +11,8 @@ object Samplers {
             Page.APPS -> AppsSampler(env)
             Page.SENSORS -> SensorsSampler(env)
             Page.STORAGE -> StorageSampler(env)
-            else -> Placeholder(page)
+            Page.JOURNAL -> JournalSampler(env)
+            Page.CONF -> ConfSampler(env)
         }
     }
-}
-
-/** Stands in for a page that isn't built yet. */
-private class Placeholder(private val page: Page) : PageSampler {
-    override suspend fun sample(): List<Line> = listOf(comment("${page.tab}: not built yet"))
 }

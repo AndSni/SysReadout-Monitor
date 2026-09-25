@@ -10,7 +10,11 @@ import androidx.lifecycle.viewModelScope
 import com.asnidev.sysreadoutmonitor.data.MonitorPrefs
 import com.asnidev.sysreadoutmonitor.data.SettingsStore
 import com.asnidev.sysreadoutmonitor.log.Access
+import com.asnidev.sysreadoutmonitor.monitor.DnsLog
+import com.asnidev.sysreadoutmonitor.monitor.DnsVpnService
 import com.asnidev.sysreadoutmonitor.monitor.ShizukuBridge
+import com.asnidev.sysreadoutmonitor.page.Conf
+import com.asnidev.sysreadoutmonitor.page.ConfAction
 import com.asnidev.sysreadoutmonitor.page.Coordinator
 import com.asnidev.sysreadoutmonitor.page.Env
 import com.asnidev.sysreadoutmonitor.page.Page
@@ -58,6 +62,12 @@ class MonitorViewModel(app: Application) : AndroidViewModel(app) {
         env.poke = coordinator::poke
         // Shizuku connecting or going away changes what the visible page can show.
         viewModelScope.launch { shizuku.state.drop(1).collect { coordinator.poke() } }
+        // Bring the DNS monitor back after the app restarts, if the user left it on.
+        viewModelScope.launch {
+            val p = _prefs.filterNotNull().first()
+            if (p.dnsVpn && !DnsLog.running.value && DnsVpnService.consentIntent(app) == null) DnsVpnService.start(app)
+        }
+        viewModelScope.launch { DnsLog.running.drop(1).collect { coordinator.poke() } }
     }
 
     /** Samples the visible page until cancelled; the activity runs this while started. */
@@ -76,6 +86,26 @@ class MonitorViewModel(app: Application) : AndroidViewModel(app) {
         _prefs.value = next
         viewModelScope.launch { store.update { next } }
         coordinator.poke()
+    }
+
+    fun conf(action: ConfAction) {
+        when (action) {
+            is ConfAction.License -> {
+                val open = env.openLicences
+                env.openLicences = if (action.name in open) open - action.name else open + action.name
+                coordinator.poke()
+            }
+            ConfAction.TextSize -> {
+                textSp = MonitorPrefs.DEFAULT_SP
+                update { Conf.apply(it, action) }
+            }
+            else -> update { Conf.apply(it, action) }
+        }
+    }
+
+    fun setDnsMonitor(on: Boolean) {
+        update { it.copy(dnsVpn = on) }
+        if (on) DnsVpnService.start(getApplication()) else DnsVpnService.stop(getApplication())
     }
 
     fun zoomBy(factor: Float) {

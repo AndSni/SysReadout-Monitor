@@ -53,6 +53,11 @@ fun MonitorScreen(vm: MonitorViewModel, onTap: (Tap) -> Unit) {
         LaunchedEffect(pager, pages) {
             snapshotFlow { pager.settledPage }.collect { i -> pages.getOrNull(i)?.let(vm::show) }
         }
+        // Hiding, showing or moving pages shifts indexes: stay on the page that was showing.
+        LaunchedEffect(pages) {
+            val index = vm.coordinator.visible.value?.let(pages::indexOf) ?: -1
+            if (index >= 0 && index != pager.currentPage) pager.scrollToPage(index)
+        }
         val jump = vm.pendingJump
         LaunchedEffect(jump, pages) {
             val target = jump?.let(pages::indexOf)?.takeIf { it >= 0 } ?: return@LaunchedEffect
