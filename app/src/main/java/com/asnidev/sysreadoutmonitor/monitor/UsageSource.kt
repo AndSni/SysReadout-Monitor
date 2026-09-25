@@ -64,6 +64,22 @@ class UsageSource(private val context: Context) {
         return out
     }
 
+    /** Foreground services started since [from] and not stopped: (package, service class, started at), oldest first. */
+    fun runningServices(from: Long): List<Triple<String, String, Long>> {
+        val open = LinkedHashMap<Pair<String, String>, Long>()
+        val events = usm.queryEvents(from, System.currentTimeMillis()) ?: return emptyList()
+        val e = UsageEvents.Event()
+        while (events.hasNextEvent()) {
+            events.getNextEvent(e)
+            val key = (e.packageName ?: continue) to (e.className ?: "")
+            when (e.eventType) {
+                FOREGROUND_SERVICE_START -> open.putIfAbsent(key, e.timeStamp)
+                FOREGROUND_SERVICE_STOP -> open.remove(key)
+            }
+        }
+        return open.map { (k, at) -> Triple(k.first, k.second, at) }.sortedBy { it.third }
+    }
+
     /** Foreground time per package since local midnight, longest first. */
     fun screenTimeToday(): List<Pair<String, Long>> {
         val stats = usm.queryAndAggregateUsageStats(startOfToday(), System.currentTimeMillis())

@@ -4,8 +4,7 @@ import com.asnidev.sysreadoutmonitor.term.Line
 import com.asnidev.sysreadoutmonitor.term.Span
 import com.asnidev.sysreadoutmonitor.term.Tone
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,10 +30,11 @@ interface PageSampler {
  * while the activity is started, so nothing samples in the background.
  * Every sampler runs on one serial dispatcher, so they need no locks.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
-class Coordinator(private val samplers: Map<Page, PageSampler>, private val intervalMs: () -> Long) {
-
-    val serial = Dispatchers.Default.limitedParallelism(1)
+class Coordinator(
+    private val samplers: Map<Page, PageSampler>,
+    private val serial: CoroutineDispatcher,
+    private val intervalMs: () -> Long,
+) {
 
     private val contents = Page.entries.associateWith { MutableStateFlow<List<Line>?>(null) }
 

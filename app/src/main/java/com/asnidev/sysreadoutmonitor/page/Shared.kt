@@ -3,6 +3,7 @@ package com.asnidev.sysreadoutmonitor.page
 import android.os.SystemClock
 import com.asnidev.sysreadoutmonitor.data.MonitorPrefs
 import com.asnidev.sysreadoutmonitor.log.Access
+import com.asnidev.sysreadoutmonitor.log.ProbeCatalog
 import com.asnidev.sysreadoutmonitor.log.ProbeReader.Companion.bytes
 import com.asnidev.sysreadoutmonitor.monitor.Parsers
 import com.asnidev.sysreadoutmonitor.monitor.Proc
@@ -37,6 +38,25 @@ class Cadence(private val ms: () -> Long) {
 
 /** How often shell-based tables refresh: the page interval, but at least [MonitorPrefs.SHELL_MIN_SEC]. */
 fun Env.shellMs(): Long = maxOf(prefs().intervalSec, MonitorPrefs.SHELL_MIN_SEC) * 1000L
+
+/**
+ * ProbeReader rows for [ids], in order: a tappable line where access is
+ * missing, [own] lines for rows the sampler builds itself, else the painted value.
+ */
+fun Env.probeRows(ids: List<String>, own: Map<String, Line?> = emptyMap()): List<Line> {
+    fun needs(id: String) = ProbeCatalog.byId[id]?.needs ?: Access.NONE
+    val values = reader.values(ids.filter { it !in own && missing(needs(it)) == null }).toMap()
+    return ids.mapNotNull { id -> gateRow(id, needs(id)) ?: if (id in own) own[id] else values[id]?.let { Paint.row(id, it) } }
+}
+
+/** "3h05m", "12m". */
+fun duration(ms: Long): String {
+    val m = ms / 60_000
+    return if (m >= 60) "${m / 60}h${"%02d".format(m % 60)}m" else "${m}m"
+}
+
+/** A dim note in place of a table with nothing in it. */
+fun note(text: String): Line = Line(listOf(Span("  $text", Tone.DIM)), indent = 2)
 
 /** A meter on its own line under a row's value. */
 fun meterLine(fraction: Double, tone: Tone, label: String): Line =

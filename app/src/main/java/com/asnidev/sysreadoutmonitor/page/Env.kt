@@ -18,9 +18,22 @@ import com.asnidev.sysreadoutmonitor.term.Tone
 import com.asnidev.sysreadoutmonitor.term.needs
 import com.asnidev.sysreadoutmonitor.term.needsRow
 import com.asnidev.sysreadoutmonitor.term.row
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 
-/** What every sampler shares. All of it is used from the coordinator's serial dispatcher. */
+/** What every sampler shares. All of it is used from [serial], the coordinator's one thread. */
+@OptIn(ExperimentalCoroutinesApi::class)
 class Env(val context: Context, val shizuku: ShizukuBridge, val prefs: () -> MonitorPrefs) {
+    val serial = Dispatchers.Default.limitedParallelism(1)
+
+    /** For slow work a sampler starts and waits for (reverse DNS, app sizes); samplers cancel their jobs in stop(). */
+    val scope = CoroutineScope(SupervisorJob() + serial)
+
+    /** Asks for a fresh sample of the visible page, e.g. when slow work finished. */
+    var poke: () -> Unit = {}
+
     val reader = ProbeReader(context)
     val usage = UsageSource(context)
     val labels = Labels(context)

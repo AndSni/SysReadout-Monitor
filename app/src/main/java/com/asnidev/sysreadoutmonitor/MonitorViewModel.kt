@@ -16,6 +16,7 @@ import com.asnidev.sysreadoutmonitor.page.Env
 import com.asnidev.sysreadoutmonitor.page.Page
 import com.asnidev.sysreadoutmonitor.page.Samplers
 import com.asnidev.sysreadoutmonitor.term.Prompt
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
@@ -35,7 +36,7 @@ class MonitorViewModel(app: Application) : AndroidViewModel(app) {
 
     val shizuku = ShizukuBridge(app)
     val env = Env(app, shizuku) { current }
-    val coordinator = Coordinator(Samplers.create(env)) { current.intervalSec * 1000L }
+    val coordinator = Coordinator(Samplers.create(env), env.serial) { current.intervalSec * 1000L }
 
     val prompt = Prompt.text(env.hostName)
 
@@ -54,6 +55,7 @@ class MonitorViewModel(app: Application) : AndroidViewModel(app) {
             textSp = p.textSp
             _prefs.value = p
         }
+        env.poke = coordinator::poke
         // Shizuku connecting or going away changes what the visible page can show.
         viewModelScope.launch { shizuku.state.drop(1).collect { coordinator.poke() } }
     }
@@ -92,6 +94,7 @@ class MonitorViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     override fun onCleared() {
+        env.scope.cancel()
         shizuku.close()
     }
 }

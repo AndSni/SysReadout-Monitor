@@ -10,6 +10,10 @@ object Samplers {
             Page.CPU -> CpuSampler(env)
             Page.MEM -> MemSampler(env)
             Page.POWER -> PowerSampler(env)
+            Page.NET -> NetSampler(env)
+            Page.APPS -> AppsSampler(env)
+            Page.SENSORS -> SensorsSampler(env)
+            Page.STORAGE -> StorageSampler(env)
             else -> Placeholder(page)
         }
     }

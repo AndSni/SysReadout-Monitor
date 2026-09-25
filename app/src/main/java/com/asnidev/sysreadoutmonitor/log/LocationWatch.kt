@@ -90,6 +90,23 @@ class LocationWatch(private val context: Context) {
         return "${used.size}/${s.satelliteCount} used  $systems" + (cn0?.let { "  C/N0 ${it.toInt()}" } ?: "")
     }
 
+    /** One satellite from the last GnssStatus: constellation, id, signal (dB-Hz), position in the sky, used in the fix. */
+    data class Satellite(val system: String, val svid: Int, val cn0: Float, val elevation: Float, val azimuth: Float, val used: Boolean)
+
+    fun satellites(): List<Satellite> {
+        val s = status ?: return emptyList()
+        return (0 until s.satelliteCount).map {
+            Satellite(
+                SYSTEMS[s.getConstellationType(it)] ?: "?",
+                s.getSvid(it),
+                s.getCn0DbHz(it),
+                s.getElevationDegrees(it),
+                s.getAzimuthDegrees(it),
+                s.usedInFix(it),
+            )
+        }
+    }
+
     private companion object {
         val SYSTEMS = mapOf(
             GnssStatus.CONSTELLATION_GPS to "GPS",

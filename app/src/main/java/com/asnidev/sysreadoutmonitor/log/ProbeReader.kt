@@ -150,6 +150,16 @@ class ProbeReader(private val context: Context) {
     /** (available, total) bytes of the file system holding [dir]. */
     fun storageBytes(dir: File): Pair<Long, Long> = StatFs(dir.path).let { it.availableBytes to it.totalBytes }
 
+    fun satellites(): List<LocationWatch.Satellite> = location.satellites()
+
+    /** Android's Wi-Fi signal level scaled to 0..4, as the wifi row words it. */
+    fun wifiLevel(rssi: Int): Int = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        wm.calculateSignalLevel(rssi) * 4 / wm.maxSignalLevel.coerceAtLeast(1)
+    } else {
+        @Suppress("DEPRECATION")
+        WifiManager.calculateSignalLevel(rssi, 5)
+    }
+
     /** Mounted removable volumes (SD cards, USB drives) with their user-visible names. */
     fun removableVolumes(): List<Pair<String, File>> =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -400,9 +410,7 @@ class ProbeReader(private val context: Context) {
         if (!wm.isWifiEnabled) return "off"
         val info = wm.connectionInfo ?: return null
         if (info.networkId == -1 && info.rssi <= -127) return "on, not connected"
-        val level = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            wm.calculateSignalLevel(info.rssi) * 4 / wm.maxSignalLevel.coerceAtLeast(1)
-        } else WifiManager.calculateSignalLevel(info.rssi, 5)
+        val level = wifiLevel(info.rssi)
         val band = when {
             info.frequency <= 0 -> ""
             info.frequency < 3000 -> "  2.4GHz"
@@ -753,7 +761,7 @@ class ProbeReader(private val context: Context) {
             else -> "type $t"
         }
 
-        private fun channel(f: Int): Int = when {
+        fun channel(f: Int): Int = when {
             f == 2484 -> 14
             f in 2412..2472 -> (f - 2407) / 5
             f in 5160..5885 -> (f - 5000) / 5
