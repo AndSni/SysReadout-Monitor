@@ -248,3 +248,20 @@ Commit at the end of each milestone with the checks green.
   running `logcat` within ~1.5 s, leaving the app within ~2.5 s.
 - **Still open:** the user's check on their phone (debug build installed 2026-09-25) and taps,
   which only the user tests.
+
+## 10. Release 0.1.0 (milestone 7, 2026-09-25)
+
+- Repo: https://github.com/AndSni/SysReadout-Monitor (public). The phone's adb serial was removed
+  from the whole history before the first push (kept in `.claude/local.md`, gitignored).
+- Signing key: `sysreadoutmonitor-release.jks` + `keystore.properties` in the repo root (gitignored),
+  alias `sysreadoutmonitor`, RSA 4096, valid to 2054; certificate SHA-256
+  `3b69c2d7c54417c453b4c676f23e36119374a68e1109c323a0c251581c6005dc`. The same values are in the
+  repo's Actions secrets. **Back both files up**: without them no update can ever install over
+  this one.
+- `v0.1.0` tag on `2c253e5`; `.fdroid.yml` pins that commit, linted with fdroidserver 2.4.5
+  (`rewritemeta` formatting, categories Battery / Network Analyzer / System).
+- Verified: the `Binaries` URL downloads, its certificate matches `AllowedAPKSigningKeys`, the APK
+  Signing Block holds only v2 (`0x7109871a`) and padding (`0x42726577`), and CI's JDK 17 build is
+  byte-identical to a local JDK 21 build of the tag (whole-file SHA-256 `306390ef…d8db77`).
+- Installed on the user's phone (user 0) from the published APK after removing the debug build.
+- Not done: the fdroiddata merge request (read its MR template first, see CLAUDE.md).
