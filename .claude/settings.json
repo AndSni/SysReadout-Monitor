@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "defaultMode": "bypassPermissions",
+    "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "Bash",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(sudo:*)",
+      "Bash(rm -rf /:*)",
+      "Bash(rm -rf ~:*)",
+      "Bash(adb shell rm -rf /:*)",
+      "Bash(adb uninstall com.android:*)",
+      "Bash(adb shell pm uninstall:*)",
+      "Bash(adb shell wipe:*)",
+      "Bash(adb reboot bootloader:*)",
+      "Bash(fastboot:*)",
+      "Read(**/keystore.properties)",
+      "Read(**/*.jks)"
+    ]
+  }
+}

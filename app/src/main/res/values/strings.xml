@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">SR Monitor</string>
+    <string name="notif_listener_label">SR Monitor notification log</string>
+</resources>

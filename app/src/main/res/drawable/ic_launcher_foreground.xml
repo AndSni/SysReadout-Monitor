@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ">" prompt and a block cursor, drawn inside the 66dp adaptive-icon safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="@color/icon_fg"
+        android:pathData="M34,38 L37.5,34.5 L55,52 L37.5,69.5 L34,66 L48,52 Z" />
+    <path
+        android:fillColor="@color/icon_fg"
+        android:pathData="M58,40 L72,40 L72,68 L58,68 Z" />
+</vector>

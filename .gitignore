@@ -1,0 +1,21 @@
+# --- Android ---
+*.iml
+.gradle/
+local.properties
+.idea/
+build/
+app/build/
+captures/
+.cxx/
+.kotlin/
+*.keystore
+*.jks
+keystore.properties
+
+# --- OS / editor ---
+.DS_Store
+*.swp
+
+# --- Claude Code ---
+.claude/settings.local.json
+.claude/worktrees/
