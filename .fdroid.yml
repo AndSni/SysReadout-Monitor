@@ -1,0 +1,39 @@
+Categories:
+  - Battery
+  - Network Analyzer
+  - System
+License: GPL-3.0-only
+AuthorName: AndSni
+SourceCode: https://github.com/AndSni/SysReadout-Monitor
+IssueTracker: https://github.com/AndSni/SysReadout-Monitor/issues
+Changelog: https://github.com/AndSni/SysReadout-Monitor/blob/HEAD/metadata/en-US/changelogs/%c.txt
+
+RepoType: git
+Repo: https://github.com/AndSni/SysReadout-Monitor.git
+
+# Summary/Description are intentionally omitted: the fastlane-structured
+# metadata/en-US/{title,short_description,full_description}.txt in this repo is
+# the single source of truth.
+
+# Each version tag also publishes a GitHub Release at that tag
+# (.github/workflows/release-tag.yml) carrying the identical, developer-signed
+# APK, so F-Droid's reproducible-build check can diff its own build against it.
+Binaries: https://github.com/AndSni/SysReadout-Monitor/releases/download/v%v/SysReadout-Monitor.apk
+
+Builds:
+  - versionName: 0.1.0
+    versionCode: 1
+    commit: 2c253e55a82e3bd2a8ab5c5cf051d92ede3361ad
+    # The Gradle root is the repo root; F-Droid looks for the output APK under
+    # <subdir>/build/outputs/apk, so this must be the app module itself.
+    subdir: app
+    gradle:
+      - yes
+
+AllowedAPKSigningKeys: 3b69c2d7c54417c453b4c676f23e36119374a68e1109c323a0c251581c6005dc
+
+AutoUpdateMode: Version
+# Only vX.Y.Z tags are releases; `latest` is CI's rolling pre-release build.
+UpdateCheckMode: Tags ^v[0-9.]+$
+CurrentVersion: 0.1.0
+CurrentVersionCode: 1
