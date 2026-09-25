@@ -7,6 +7,7 @@ import android.os.UserManager
 import com.asnidev.sysreadoutmonitor.term.Line
 import com.asnidev.sysreadoutmonitor.term.Span
 import com.asnidev.sysreadoutmonitor.term.Tone
+import java.time.Year
 
 /** `fastfetch`: what the phone is. */
 class SysSampler(private val env: Env) : PageSampler {
@@ -24,8 +25,15 @@ class SysSampler(private val env: Env) : PageSampler {
         val host = env.hostName
         val title = Line(listOf(Span("user", Tone.KEY), Span("@"), Span(host, Tone.KEY)))
         val rule = Line(listOf(Span("-".repeat(5 + host.length))))
-        return listOf(title, rule) + env.reader.values(ROWS).map { (id, value) -> Paint.row(id, value) }
+        val banner = if (!env.prefs().banner) emptyList() else banner() + Line.BLANK
+        return banner + listOf(title, rule) + env.reader.values(ROWS).map { (id, value) -> Paint.row(id, value) }
     }
+
+    /** Centred like fastfetch's logo, in its colour. */
+    private fun banner(): List<Line> = listOf(
+        "SYSTEM READOUT MONITOR",
+        "- ASNIDEV INC $FIRST_YEAR-${Year.now().value} -",
+    ).map { Line(listOf(Span(it, Tone.KEY)), center = true) }
 
     /** Installed packages (user-installed among them) and launchable apps per profile. */
     private fun countApps(): String {
@@ -41,6 +49,7 @@ class SysSampler(private val env: Env) : PageSampler {
     }
 
     private companion object {
+        const val FIRST_YEAR = 2026
         val ROWS = listOf("dev", "os", "kern", "props", "soc", "gpu", "disp", "up", "boot", "time", "apps")
     }
 }

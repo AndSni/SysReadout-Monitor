@@ -1,7 +1,13 @@
 package com.asnidev.sysreadoutmonitor.page
 
+import android.content.ComponentName
+import android.media.MediaMetadata
+import android.media.session.MediaSessionManager
+import android.media.session.PlaybackState
 import com.asnidev.sysreadoutmonitor.log.Access
 import com.asnidev.sysreadoutmonitor.log.LocationWatch
+import com.asnidev.sysreadoutmonitor.monitor.NotifListener
+import com.asnidev.sysreadoutmonitor.monitor.NotifLog
 import com.asnidev.sysreadoutmonitor.monitor.Parsers
 import com.asnidev.sysreadoutmonitor.term.Col
 import com.asnidev.sysreadoutmonitor.term.Line
@@ -28,11 +34,18 @@ class SensorsSampler(private val env: Env) : PageSampler {
     override suspend fun sample(): List<Line> {
         // Again each time, so a permission granted while the page is open takes effect.
         env.reader.updateWatchers(WATCHED)
-        if (env.missing(Access.SHIZUKU) == null && mediaCadence.due()) {
+        // Notification access is enough to see media sessions; Shizuku's dumpsys is the fallback.
+        val sessions = NotifLog.connected
+        if (sessions) {
+            media = nowPlaying()
+        } else if (env.missing(Access.SHIZUKU) == null && mediaCadence.due()) {
             env.shizuku.exec("dumpsys media_session")?.let { text ->
-                media = Parsers.nowPlaying(text)?.let { "${it.title}" + (it.artist?.let { a -> " — $a" } ?: "") + " · ${env.labels.pkgLabel(it.pkg)}" }
-                    ?: "nothing playing"
+                media = Parsers.nowPlaying(text)?.let { describe(it.title, it.artist, it.pkg) } ?: "nothing playing"
             }
+        }
+        val mediaRow = when {
+            sessions || env.missing(Access.SHIZUKU) == null -> row("media", media ?: "…")
+            else -> env.gateRow("media", Access.NOTIFICATIONS)
         }
         val out = ArrayList<Line>()
         out += comment("environment")
@@ -46,10 +59,23 @@ class SensorsSampler(private val env: Env) : PageSampler {
         out += comment("radios and devices")
         out += env.probeRows(
             listOf("radio", "bt", "audio", "media", "alarm", "debug"),
-            own = mapOf("media" to row("media", media ?: "…")),
+            own = mapOf("media" to mediaRow),
         )
         return out
     }
+
+    private fun describe(title: String, artist: String?, pkg: String) =
+        title + (artist?.let { " — $it" } ?: "") + " · ${env.labels.pkgLabel(pkg)}"
+
+    /** The first playing media session, through the notification listener's access. */
+    private fun nowPlaying(): String = runCatching {
+        val msm = env.context.getSystemService(MediaSessionManager::class.java)
+        val sessions = msm.getActiveSessions(ComponentName(env.context, NotifListener::class.java))
+        val playing = sessions.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING }
+        val meta = playing?.metadata ?: return@runCatching "nothing playing"
+        val title = meta.getString(MediaMetadata.METADATA_KEY_TITLE)?.takeIf { it.isNotBlank() } ?: return@runCatching "playing, no title"
+        describe(title, meta.getString(MediaMetadata.METADATA_KEY_ARTIST)?.takeIf { it.isNotBlank() }, playing.packageName)
+    }.getOrDefault("…")
 
     /** One line per satellite in view, as `GnssStatus` reports it. */
     private fun satellites(): List<Line> {

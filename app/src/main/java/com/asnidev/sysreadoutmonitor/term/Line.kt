@@ -34,8 +34,16 @@ data class Meter(val fraction: Float, val tone: Tone, val label: String)
  * One terminal line. It never soft-wraps on screen; [Wrap] splits it to the
  * screen's width first, continuing at column [indent] (a hanging indent that
  * keeps keys and table columns readable). A [meter] is drawn after the spans.
+ * A [center]ed line is padded to the middle of the screen; an [anchor] names
+ * the line so a tap elsewhere can scroll to it.
  */
-data class Line(val spans: List<Span>, val indent: Int = 0, val meter: Meter? = null) {
+data class Line(
+    val spans: List<Span>,
+    val indent: Int = 0,
+    val meter: Meter? = null,
+    val center: Boolean = false,
+    val anchor: String? = null,
+) {
     val text: String get() = spans.joinToString("") { it.text }
 
     companion object {

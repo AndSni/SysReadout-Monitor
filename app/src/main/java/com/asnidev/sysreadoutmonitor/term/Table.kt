@@ -3,9 +3,12 @@ package com.asnidev.sysreadoutmonitor.term
 /** A table column; every column but the last is as wide as its widest cell. */
 data class Col(val title: String, val right: Boolean = false)
 
-data class Cell(val text: String, val tone: Tone = Tone.FG)
+data class Cell(val text: String, val tone: Tone = Tone.FG, val tap: Tap? = null)
 
 fun cell(text: String, tone: Tone = Tone.FG) = Cell(text, tone)
+
+/** A cell to tap: cyan and underlined, like every link. */
+fun link(text: String, tap: Tap) = Cell(text, Tone.LINK, tap)
 
 /**
  * Fixed-width columns with a bold header, like `top` or `ps`. The last column
@@ -23,10 +26,10 @@ fun table(cols: List<Col>, rows: List<List<Cell>>): List<Line> {
             val cell = cells.getOrNull(c) ?: Cell("")
             val pad = (widths[c] - Wrap.width(cell.text)).coerceAtLeast(0)
             if (c == cols.lastIndex) {
-                spans += Span(cell.text, cell.tone)
+                spans += Span(cell.text, cell.tone, cell.tap)
             } else {
                 if (col.right) spans += Span(" ".repeat(pad))
-                spans += Span(cell.text, cell.tone)
+                spans += Span(cell.text, cell.tone, cell.tap)
                 spans += Span(" ".repeat(if (col.right) 1 else pad + 1))
             }
         }

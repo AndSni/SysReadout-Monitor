@@ -15,7 +15,9 @@ object Wrap {
     fun lines(line: Line, cols: Int): List<Line> {
         if (cols <= 0) return listOf(line)
         line.meter?.let { return meterLines(line, it, cols) }
-        if (width(line.spans) <= cols) return listOf(line)
+        val w = width(line.spans)
+        if (line.center && w < cols) return listOf(line.copy(spans = listOf(Span(" ".repeat((cols - w) / 2))) + line.spans, center = false))
+        if (w <= cols) return listOf(line)
 
         val cells = cells(line.spans)
         val indent = line.indent.coerceIn(0, cols / 2)
@@ -36,7 +38,7 @@ object Wrap {
         }
         return rows.mapIndexed { n, row ->
             val spans = spansOf(row, line.spans)
-            Line(if (n == 0 || indent == 0) spans else listOf(Span(" ".repeat(indent))) + spans)
+            Line(if (n == 0 || indent == 0) spans else listOf(Span(" ".repeat(indent))) + spans, anchor = line.anchor.takeIf { n == 0 })
         }
     }
 
@@ -65,10 +67,11 @@ object Wrap {
 
     private fun meterLines(line: Line, meter: Meter, cols: Int): List<Line> {
         val prefix = width(line.spans)
-        if (cols - prefix >= MIN_METER) return listOf(Line(line.spans + render(meter, cols - prefix)))
+        if (cols - prefix >= MIN_METER) return listOf(Line(line.spans + render(meter, cols - prefix), anchor = line.anchor))
         val indent = line.indent.coerceIn(0, cols / 2)
         val head = if (line.spans.isEmpty()) emptyList() else lines(line.copy(meter = null), cols)
-        return head + Line(listOf(Span(" ".repeat(indent))) + render(meter, cols - indent))
+        val bar = Line(listOf(Span(" ".repeat(indent))) + render(meter, cols - indent), anchor = line.anchor.takeIf { head.isEmpty() })
+        return head + bar
     }
 
     /** `[|||||      37.0%]` in exactly [width] columns; the label sits right-aligned inside, over the bars. */

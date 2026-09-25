@@ -147,6 +147,16 @@ class ProbeReader(private val context: Context) {
         }
     }
 
+    /** Highest clock of each possible core in kHz (for clock meters without Shizuku); null when unknown. */
+    fun coreMaxClocks(): List<Long?> {
+        val possible = cpuCount("/sys/devices/system/cpu/possible") ?: Runtime.getRuntime().availableProcessors()
+        return (0 until possible).map { core ->
+            listOf("cpuinfo_max_freq", "scaling_max_freq").firstNotNullOfOrNull { f ->
+                readText("/sys/devices/system/cpu/cpu$core/cpufreq/$f")?.trim()?.toLongOrNull()?.takeIf { it >= 100_000 }
+            }
+        }
+    }
+
     /** (available, total) bytes of the file system holding [dir]. */
     fun storageBytes(dir: File): Pair<Long, Long> = StatFs(dir.path).let { it.availableBytes to it.totalBytes }
 

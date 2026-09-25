@@ -57,6 +57,9 @@ object Thresholds {
         else -> Tone.FG
     }
 
+    /** A radio signal in dBm: the same cut-offs as the words (strong and better, medium, weak). */
+    fun dbm(dbm: Int): Tone = signal(Signal.words(dbm))
+
     /** The low-memory flag is always critical. */
     val lowMemory = Tone.CRIT
 

@@ -7,6 +7,7 @@ enum class Page(val tab: String, val command: String) {
     MEM("mem", "free -h"),
     POWER("power", "upower -d"),
     NET("net", "ip addr; ss -tunp"),
+    SCAN("scan", "nmcli device wifi list; bluetoothctl scan on"),
     APPS("apps", "dumpsys usagestats"),
     SENSORS("sensors", "sensors"),
     STORAGE("storage", "df -h"),

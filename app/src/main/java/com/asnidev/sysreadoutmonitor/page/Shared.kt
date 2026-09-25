@@ -40,13 +40,14 @@ class Cadence(private val ms: () -> Long) {
 fun Env.shellMs(): Long = maxOf(prefs().intervalSec, MonitorPrefs.SHELL_MIN_SEC) * 1000L
 
 /**
- * ProbeReader rows for [ids], in order: a tappable line where access is
- * missing, [own] lines for rows the sampler builds itself, else the painted value.
+ * ProbeReader rows for [ids], in order: [own] lines the sampler built itself
+ * (it passes null when it has none), else a tappable line where access is
+ * missing, else the painted value.
  */
 fun Env.probeRows(ids: List<String>, own: Map<String, Line?> = emptyMap()): List<Line> {
     fun needs(id: String) = ProbeCatalog.byId[id]?.needs ?: Access.NONE
     val values = reader.values(ids.filter { it !in own && missing(needs(it)) == null }).toMap()
-    return ids.mapNotNull { id -> gateRow(id, needs(id)) ?: if (id in own) own[id] else values[id]?.let { Paint.row(id, it) } }
+    return ids.mapNotNull { id -> own[id] ?: gateRow(id, needs(id)) ?: values[id]?.let { Paint.row(id, it) } }
 }
 
 /** "3h05m", "12m". */

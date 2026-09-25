@@ -4,6 +4,8 @@ import com.asnidev.sysreadoutmonitor.data.MonitorPrefs
 
 /** An on/off line in srm.conf. */
 enum class Setting(val key: String, val get: (MonitorPrefs) -> Boolean, val set: (MonitorPrefs, Boolean) -> MonitorPrefs) {
+    BANNER("banner", { it.banner }, { p, v -> p.copy(banner = v) }),
+    REMEMBER_PAGE("remember_page", { it.rememberPage }, { p, v -> p.copy(rememberPage = v) }),
     REVERSE_DNS("reverse_dns", { it.resolveHosts }, { p, v -> p.copy(resolveHosts = v) }),
     SYSTEM("system", { it.evSystem }, { p, v -> p.copy(evSystem = v) }),
     APPS("app_switches", { it.evApps }, { p, v -> p.copy(evApps = v) }),

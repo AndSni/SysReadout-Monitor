@@ -35,15 +35,29 @@ enum class Access(val tag: String, val permissions: List<String> = emptyList()) 
     ACTIVITY(
         "activity",
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) listOf(Manifest.permission.ACTIVITY_RECOGNITION) else emptyList(),
+    ),
+
+    /** Bluetooth scanning: Android 12's "nearby devices" (scan + connect for names), location before that. */
+    NEARBY(
+        "nearby devices",
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            listOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
+        } else {
+            listOf(Manifest.permission.ACCESS_FINE_LOCATION)
+        },
     );
 
     /** True for the plain runtime permissions (not usage/notification access or Shizuku). */
-    val isRuntime: Boolean get() = this in setOf(LOCATION, PHONE, BLUETOOTH, ACTIVITY)
+    val isRuntime: Boolean get() = this in setOf(LOCATION, PHONE, BLUETOOTH, ACTIVITY, NEARBY)
 
-    /** The first permission is the one that matters (fine location; coarse is only offered alongside). */
-    fun runtimeGranted(context: Context): Boolean = permissions.firstOrNull()?.let {
-        ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
-    } ?: true
+    /**
+     * Location needs only its first permission (fine; coarse is only offered alongside);
+     * every other access needs all of its permissions.
+     */
+    fun runtimeGranted(context: Context): Boolean =
+        (if (this == LOCATION) permissions.take(1) else permissions).all {
+            ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+        }
 }
 
 /** One pinned log row the user can switch on. [id] doubles as the row's key column. */
@@ -94,7 +108,7 @@ object ProbeCatalog {
         ProbeInfo("sd", ProbeGroup.STORAGE, "removable storage free / total"),
         ProbeInfo("disp", ProbeGroup.DEVICE, "resolution, refresh rate, density, brightness"),
         ProbeInfo("audio", ProbeGroup.DEVICE, "media and ring volume, audio output"),
-        ProbeInfo("media", ProbeGroup.DEVICE, "what's playing and in which app", needs = Access.SHIZUKU),
+        ProbeInfo("media", ProbeGroup.DEVICE, "what's playing and in which app", needs = Access.NOTIFICATIONS),
         ProbeInfo("alarm", ProbeGroup.DEVICE, "next alarm"),
         ProbeInfo("env", ProbeGroup.DEVICE, "light, pressure, altitude, temperature, humidity sensors"),
         ProbeInfo("compass", ProbeGroup.DEVICE, "heading, pitch and roll"),

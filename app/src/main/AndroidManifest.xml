@@ -24,6 +24,15 @@
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+    <!-- Scan page: Bluetooth signal of nearby devices, asked for when the page's scan is tapped.
+         Never used to derive location. Android 11 and older scan with BLUETOOTH_ADMIN + location. -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="s" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
     <!-- None of that hardware is required to install. -->
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
     <uses-feature android:name="android.hardware.telephony" android:required="false" />

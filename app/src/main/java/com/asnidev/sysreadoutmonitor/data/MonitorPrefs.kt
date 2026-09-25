@@ -12,6 +12,10 @@ data class MonitorPrefs(
     /** Tab names the user switched off. */
     val hidden: Set<String> = emptySet(),
     val lastPage: String = "",
+    /** Open on the last page seen instead of sys. */
+    val rememberPage: Boolean = false,
+    /** The "SYSTEM READOUT MONITOR" lines at the top of sys. */
+    val banner: Boolean = true,
     val textSp: Float = DEFAULT_SP,
     val resolveHosts: Boolean = true,
     /** The optional local-VPN DNS monitor: real hostnames per app. */
@@ -34,6 +38,8 @@ data class MonitorPrefs(
         .put("order", JSONArray(order))
         .put("hidden", JSONArray(hidden.toList()))
         .put("lastPage", lastPage)
+        .put("rememberPage", rememberPage)
+        .put("banner", banner)
         .put("textSp", textSp.toDouble())
         .put("resolveHosts", resolveHosts).put("dnsVpn", dnsVpn)
         .put("logcatWarnings", logcatWarnings).put("notifTitles", notifTitles)
@@ -58,6 +64,8 @@ data class MonitorPrefs(
                 order = strings("order") ?: d.order,
                 hidden = strings("hidden")?.toSet() ?: d.hidden,
                 lastPage = o.optString("lastPage", d.lastPage),
+                rememberPage = o.optBoolean("rememberPage", d.rememberPage),
+                banner = o.optBoolean("banner", d.banner),
                 textSp = o.optDouble("textSp", d.textSp.toDouble()).toFloat().coerceIn(MIN_SP, MAX_SP),
                 resolveHosts = o.optBoolean("resolveHosts", d.resolveHosts),
                 dnsVpn = o.optBoolean("dnsVpn", d.dnsVpn),

@@ -50,8 +50,20 @@ class MonitorViewModel(app: Application) : AndroidViewModel(app) {
     /** Runtime permissions already asked for in this session (see MainActivity.runtime). */
     val asked = HashSet<Access>()
 
-    /** A page to switch to (debug extra, or a tap that leads to another page). */
+    /** A page to switch to (debug extra, or a tap that leads to another page), and a line on it to show. */
     var pendingJump by mutableStateOf<Page?>(null)
+    var pendingAnchor by mutableStateOf<String?>(null)
+
+    fun jump(page: Page, anchor: String? = null) {
+        pendingJump = page
+        pendingAnchor = anchor
+    }
+
+    /** Follows a Bluetooth device on the scan page; the same one again stops. */
+    fun track(address: String?) {
+        env.tracked = if (address == env.tracked) null else address
+        coordinator.poke()
+    }
 
     init {
         viewModelScope.launch {

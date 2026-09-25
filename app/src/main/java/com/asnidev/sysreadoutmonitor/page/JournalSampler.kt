@@ -60,10 +60,10 @@ class JournalSampler(private val env: Env) : PageSampler {
             packages()
         }
         if (env.missing(Access.USAGE) == null && (m.evApps || m.evServices || m.evScreen)) {
-            // First visit: the last hour, which Android keeps anyway.
-            env.usage.events(usageSince ?: (now - 60 * 60_000L), now).forEach { usage(it, m) }
+            // Catch up from the last read, but never more than the last hour (Android keeps it anyway).
+            env.usage.events(maxOf(usageSince ?: 0L, now - 60 * 60_000L), now).forEach { usage(it, m) }
+            usageSince = now
         }
-        usageSince = now
         if (m.evDns) dns() else dnsSeen = now
         if (m.evNotif) notifications(m) else notifSeen = now
         if (env.missing(Access.SHIZUKU) == null && shellCadence.due()) {

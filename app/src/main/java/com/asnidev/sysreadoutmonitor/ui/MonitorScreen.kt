@@ -45,7 +45,9 @@ fun MonitorScreen(vm: MonitorViewModel, onTap: (Tap) -> Unit) {
         if (prefs == null) return@Column // settings load in a few ms; show the empty terminal meanwhile
 
         val pages = remember(prefs.order, prefs.hidden) { Page.arrange(prefs.order, prefs.hidden) }
-        val pager = rememberPagerState(pages.indexOf(Page.byTab(prefs.lastPage)).coerceAtLeast(0)) { pages.size }
+        // sys first (or the first page shown), unless the user asked for the last page seen.
+        val start = Page.byTab(prefs.lastPage).takeIf { prefs.rememberPage } ?: Page.SYS
+        val pager = rememberPagerState(pages.indexOf(start).coerceAtLeast(0)) { pages.size }
         val scope = rememberCoroutineScope()
         val paused by vm.coordinator.paused.collectAsState()
         val lists = remember { Page.entries.associateWith { LazyListState() } }
@@ -99,6 +101,8 @@ fun MonitorScreen(vm: MonitorViewModel, onTap: (Tap) -> Unit) {
                     list = lists.getValue(page),
                     active = pager.settledPage == i,
                     paused = page in paused,
+                    anchor = vm.pendingAnchor.takeIf { pager.settledPage == i && vm.pendingJump == null },
+                    onAnchored = { vm.pendingAnchor = null },
                     onPrompt = { vm.coordinator.togglePause(page) },
                     onTap = onTap,
                 )

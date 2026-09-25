@@ -5,6 +5,7 @@ import com.asnidev.sysreadoutmonitor.BuildConfig
 import com.asnidev.sysreadoutmonitor.log.Access
 import com.asnidev.sysreadoutmonitor.monitor.DnsLog
 import com.asnidev.sysreadoutmonitor.monitor.NotifLog
+import com.asnidev.sysreadoutmonitor.monitor.ShizukuBridge
 import com.asnidev.sysreadoutmonitor.monitor.ShizukuState
 import com.asnidev.sysreadoutmonitor.term.Line
 import com.asnidev.sysreadoutmonitor.term.Span
@@ -43,6 +44,9 @@ class ConfSampler(private val env: Env) : PageSampler {
         note("pinch a page to zoom between 8 and 20; tap to go back to 12")
 
         section("pages")
+        toggle(Setting.BANNER)
+        toggle(Setting.REMEMBER_PAGE)
+        note("off: the app opens on sys. on: it opens on the page you left")
         note("tap [x] to show or hide a page, ↑ ↓ to move it")
         Conf.order(m).forEach { page ->
             val shown = page.tab !in m.hidden
@@ -58,13 +62,15 @@ class ConfSampler(private val env: Env) : PageSampler {
         section("access")
         note("nothing is asked for until you tap it here or on the page that needs it")
         access(::set, "usage", Access.USAGE, "screen time, traffic, app sizes, app and screen events")
-        access(::set, "notifications", Access.NOTIFICATIONS, "notification counts and events")
-        shizuku(::set, ::note)
+        access(::set, "notifications", Access.NOTIFICATIONS, "notification counts and events, now playing")
         access(::set, "location", Access.LOCATION, "gps, satellites, wi-fi name and networks, serving cell, sunrise")
+        access(::set, "nearby", Access.NEARBY, "bluetooth devices and their signal on the scan page")
         access(::set, "phone", Access.PHONE, "5G / LTE-CA link details")
         access(::set, "bluetooth", Access.BLUETOOTH, "connected bluetooth devices and their battery")
         access(::set, "activity", Access.ACTIVITY, "steps")
         set("revoke", link("open android's settings for SR Monitor", Tap.AppSettings))
+
+        shizuku(out, ::section, ::set, ::note)
 
         section("dns monitor")
         note("shows which app looks up which server name (imap.gmail.com, not just an ip).")
@@ -112,24 +118,56 @@ class ConfSampler(private val env: Env) : PageSampler {
         )
     }
 
-    private fun shizuku(set: (String, List<Span>) -> Unit, note: (String) -> Unit) {
+    /**
+     * Shizuku is optional: everything works without it, and it adds the shell's view.
+     * A step-by-step setup, each step a link that does it.
+     */
+    private fun shizuku(
+        out: MutableList<Line>,
+        section: (String) -> Unit,
+        set: (String, List<Span>) -> Unit,
+        note: (String) -> Unit,
+    ) {
         val state = env.shizuku.state.value
-        val tap = Tap.Grant(Access.SHIZUKU)
-        val used = Span("  # processes, connections, temperatures, core load, wake locks, battery use, logcat", Tone.DIM)
+        section("shizuku")
+        out[out.lastIndex] = out.last().copy(anchor = SHIZUKU_ANCHOR)
+        note("optional. shizuku lets apps you allow use the shell's access (as adb has), so SR Monitor can also show processes, connections, per-core load, temperatures, wake locks, battery use per app and logcat. everything else works without it.")
         set(
-            "shizuku",
+            "status",
             when (state) {
-                ShizukuState.READY -> listOf(Span("connected", Tone.GOOD), used)
-                ShizukuState.CONNECTING -> listOf(Span("connecting…", Tone.DIM), used)
-                ShizukuState.NOT_INSTALLED -> listOf(Span("not installed, tap to get it", Tone.LINK, tap), used)
-                ShizukuState.NOT_RUNNING -> listOf(Span("not running, tap to open shizuku", Tone.LINK, tap), used)
-                ShizukuState.UNSUPPORTED -> listOf(Span("too old, tap to update it", Tone.LINK, tap), used)
-                ShizukuState.NO_PERMISSION -> listOf(Span("not allowed, tap to allow", Tone.LINK, tap), used)
+                ShizukuState.READY -> listOf(Span("connected", Tone.GOOD))
+                ShizukuState.CONNECTING -> listOf(Span("connecting…", Tone.DIM))
+                ShizukuState.NOT_INSTALLED -> listOf(Span("not installed", Tone.DIM))
+                ShizukuState.NOT_RUNNING -> listOf(Span("installed, not running", Tone.WARN))
+                ShizukuState.UNSUPPORTED -> listOf(Span("too old, needs version 11 or newer", Tone.WARN))
+                ShizukuState.NO_PERMISSION -> listOf(Span("running, SR Monitor not allowed yet", Tone.WARN))
             },
         )
-        if (state == ShizukuState.NOT_RUNNING || state == ShizukuState.NOT_INSTALLED) {
-            note("shizuku gives apps you allow the shell's access. start it in the shizuku app with wireless debugging, adb or root; without root it stops at every reboot.")
+        val installed = state != ShizukuState.NOT_INSTALLED && state != ShizukuState.UNSUPPORTED
+        val running = installed && state != ShizukuState.NOT_RUNNING
+        val allowed = running && state != ShizukuState.NO_PERMISSION
+        fun done() = listOf(Span("done", Tone.GOOD))
+        set("1_install", if (installed) done() else listOf(Span("tap to get shizuku (play store or github)", Tone.LINK, Tap.Url(ShizukuBridge.DOWNLOAD))))
+        set(
+            "2_start",
+            when {
+                running -> done()
+                installed -> listOf(Span("tap to open shizuku, then start it", Tone.LINK, Tap.Grant(Access.SHIZUKU)))
+                else -> listOf(Span("after step 1", Tone.DIM))
+            },
+        )
+        if (!running) {
+            note("android 11+: in shizuku choose \"start via wireless debugging\" and follow its pairing steps (developer options must be on). older android: start it once from a computer with adb. with root: start it with root, and it starts itself after reboots.")
         }
+        set(
+            "3_allow",
+            when {
+                allowed -> done()
+                running -> listOf(Span("tap to let SR Monitor use shizuku", Tone.LINK, Tap.Grant(Access.SHIZUKU)))
+                else -> listOf(Span("after step 2", Tone.DIM))
+            },
+        )
+        note("without root, shizuku stops when the phone restarts; start it again in the shizuku app (step 2). the pages show what needs it until then.")
     }
 
     private fun license(asset: String): List<Line> {
@@ -137,9 +175,11 @@ class ConfSampler(private val env: Env) : PageSampler {
         return text.lines().map { Line(listOf(Span("  " + it.removePrefix("### "), Tone.DIM)), indent = 2) }
     }
 
-    private companion object {
-        const val KEY_WIDTH = 14
-        const val HACK = "hack"
-        const val UPSTREAM = "https://github.com/AndSni/SysReadout-Launcher"
+    companion object {
+        private const val KEY_WIDTH = 14
+        private const val HACK = "hack"
+        /** The [shizuku] section, for taps that lead to the setup steps. */
+        const val SHIZUKU_ANCHOR = "shizuku"
+        private const val UPSTREAM = "https://github.com/AndSni/SysReadout-Launcher"
     }
 }

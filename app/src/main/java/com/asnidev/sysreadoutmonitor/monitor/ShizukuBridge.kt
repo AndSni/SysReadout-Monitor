@@ -24,7 +24,10 @@ enum class ShizukuState(val label: String) {
 
 /**
  * Optional shell-level access through Shizuku. Everything degrades to "not
- * available" when Shizuku is missing, stopped or not granted.
+ * available" when Shizuku is missing, stopped or not granted. Shizuku can die
+ * at any moment (a reboot, the user stopping it, its process killed), and its
+ * API then throws from calls that looked safe a moment earlier, so every call
+ * into it is guarded: a dead Shizuku means NOT_RUNNING, never a crash.
  */
 class ShizukuBridge(private val context: Context) {
 
@@ -62,23 +65,32 @@ class ShizukuBridge(private val context: Context) {
     private val onPermission = Shizuku.OnRequestPermissionResultListener { _, _ -> refresh() }
 
     init {
-        Shizuku.addBinderReceivedListenerSticky(onBinder)
-        Shizuku.addBinderDeadListener(onDead)
-        Shizuku.addRequestPermissionResultListener(onPermission)
+        runCatching {
+            Shizuku.addBinderReceivedListenerSticky(onBinder)
+            Shizuku.addBinderDeadListener(onDead)
+            Shizuku.addRequestPermissionResultListener(onPermission)
+        }
         refresh()
     }
 
     fun refresh() {
-        _state.value = when {
-            !installed() -> ShizukuState.NOT_INSTALLED
-            !Shizuku.pingBinder() -> ShizukuState.NOT_RUNNING
-            Shizuku.isPreV11() -> ShizukuState.UNSUPPORTED
-            Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED -> ShizukuState.NO_PERMISSION
-            service != null -> ShizukuState.READY
-            else -> {
-                bind()
-                ShizukuState.CONNECTING
+        _state.value = try {
+            when {
+                !installed() -> ShizukuState.NOT_INSTALLED
+                !Shizuku.pingBinder() -> ShizukuState.NOT_RUNNING
+                Shizuku.isPreV11() -> ShizukuState.UNSUPPORTED
+                Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED -> ShizukuState.NO_PERMISSION
+                service != null -> ShizukuState.READY
+                else -> {
+                    bind()
+                    ShizukuState.CONNECTING
+                }
             }
+        } catch (e: RuntimeException) {
+            // The binder died between the ping and the call (IllegalStateException, or a RemoteException rethrown).
+            service = null
+            binding = false
+            ShizukuState.NOT_RUNNING
         }
     }
 
@@ -89,7 +101,8 @@ class ShizukuBridge(private val context: Context) {
     }
 
     fun requestPermission() {
-        if (Shizuku.pingBinder() && !Shizuku.isPreV11()) Shizuku.requestPermission(REQUEST_CODE)
+        runCatching { if (Shizuku.pingBinder() && !Shizuku.isPreV11()) Shizuku.requestPermission(REQUEST_CODE) }
+            .onFailure { refresh() }
     }
 
     private fun installed(): Boolean =
@@ -98,8 +111,7 @@ class ShizukuBridge(private val context: Context) {
     /** Opens the Shizuku app so the user can start it. */
     fun openApp(): Boolean {
         val intent = context.packageManager.getLaunchIntentForPackage(PACKAGE) ?: return false
-        context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-        return true
+        return runCatching { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess
     }
 
     val ready: Boolean get() = service != null
@@ -126,14 +138,18 @@ class ShizukuBridge(private val context: Context) {
     }
 
     fun close() {
-        Shizuku.removeBinderReceivedListener(onBinder)
-        Shizuku.removeBinderDeadListener(onDead)
-        Shizuku.removeRequestPermissionResultListener(onPermission)
+        runCatching {
+            Shizuku.removeBinderReceivedListener(onBinder)
+            Shizuku.removeBinderDeadListener(onDead)
+            Shizuku.removeRequestPermissionResultListener(onPermission)
+        }
         if (service != null) runCatching { Shizuku.unbindUserService(args, connection, true) }
     }
 
     companion object {
         const val PACKAGE = "moe.shizuku.privileged.api"
+        /** Shizuku's own download page (Play Store and GitHub releases). */
+        const val DOWNLOAD = "https://shizuku.rikka.app/download/"
         private const val REQUEST_CODE = 7301
     }
 }

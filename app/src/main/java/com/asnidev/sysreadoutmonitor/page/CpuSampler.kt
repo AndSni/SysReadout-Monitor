@@ -38,15 +38,22 @@ class CpuSampler(private val env: Env) : PageSampler {
         val load = if (shellGate == null) env.shizuku.readFile("/proc/loadavg")?.trim()?.split(' ') else null
         out += shellGate ?: row("load", if (load != null && load.size >= 4) "${load[0]} ${load[1]} ${load[2]}  run/total ${load[3]}" else "…")
 
-        out += comment("cores")
         val usage = if (shellGate == null) coreUsage() else null
+        val max = r.coreMaxClocks()
+        // Without Shizuku a normal app can't see per-core load, but it can see clocks: a busy core clocks up.
+        out += comment(if (usage != null) "cores · load" else "cores · clock speed (load per core needs shizuku)")
         clocks.forEachIndexed { core, khz ->
             val key = Span("cpu$core".padEnd(KEY_WIDTH), Tone.KEY)
             val clock = khz?.let { Span(String.format(Locale.US, "%.2fGHz ", it / 1_000_000.0)) }
             val use = usage?.getOrNull(core)
+            val top = max.getOrNull(core)
             out += when {
                 use != null -> Line(listOfNotNull(key, clock), indent = KEY_WIDTH, meter = Meter(use.toFloat(), Thresholds.load(use * 100), percent(use * 100)))
                 usage != null && khz == null -> Line(listOf(key, Span("offline", Tone.DIM)))
+                khz != null && top != null -> Line(
+                    listOf(key), indent = KEY_WIDTH,
+                    meter = Meter((khz.toFloat() / top).coerceIn(0f, 1f), Tone.FG, String.format(Locale.US, "%.2f/%.2fGHz", khz / 1e6, top / 1e6)),
+                )
                 else -> Line(listOf(key, clock ?: Span("n/a", Tone.DIM)))
             }
         }

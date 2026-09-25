@@ -1,11 +1,6 @@
 package com.asnidev.sysreadoutmonitor.page
 
-import android.annotation.SuppressLint
-import android.net.wifi.ScanResult
-import android.net.wifi.WifiManager
-import android.os.Build
 import com.asnidev.sysreadoutmonitor.log.Access
-import com.asnidev.sysreadoutmonitor.log.ProbeReader
 import com.asnidev.sysreadoutmonitor.log.ProbeReader.Companion.bytes
 import com.asnidev.sysreadoutmonitor.monitor.DnsLog
 import com.asnidev.sysreadoutmonitor.monitor.Parsers
@@ -14,7 +9,6 @@ import com.asnidev.sysreadoutmonitor.term.Col
 import com.asnidev.sysreadoutmonitor.term.Line
 import com.asnidev.sysreadoutmonitor.term.Span
 import com.asnidev.sysreadoutmonitor.term.Tap
-import com.asnidev.sysreadoutmonitor.term.Thresholds
 import com.asnidev.sysreadoutmonitor.term.Tone
 import com.asnidev.sysreadoutmonitor.term.cell
 import com.asnidev.sysreadoutmonitor.term.comment
@@ -29,8 +23,6 @@ import java.time.format.DateTimeFormatter
 
 /** `ip addr; ss -tunp`: links, radios, traffic, and who talks to whom. */
 class NetSampler(private val env: Env) : PageSampler {
-
-    private val wm = env.context.applicationContext.getSystemService(WifiManager::class.java)
 
     private val usageCadence = Cadence { 60_000L }
     private var traffic: Map<Int, Pair<Long, Long>>? = null
@@ -66,11 +58,10 @@ class NetSampler(private val env: Env) : PageSampler {
         val out = ArrayList<Line>()
         out += env.probeRows(
             ROWS,
-            own = mapOf("month" to month?.let { (wifi, mobile) -> row("month", "wifi ${bytes(wifi)}  mobile ${bytes(mobile)}") }),
+            own = mapOf("month" to month?.takeIf { usage }?.let { (wifi, mobile) -> row("month", "wifi ${bytes(wifi)}  mobile ${bytes(mobile)}") }),
         )
 
-        out += comment("wi-fi networks nearby")
-        out += env.gate(Access.LOCATION)?.let(::listOf) ?: nearby()
+        out += Line(listOf(Span("# every network and bluetooth device with its signal: ", Tone.DIM), Span("scan page", Tone.LINK, Tap.Goto(Page.SCAN))), indent = 2)
 
         out += comment("traffic today per app")
         out += env.gate(Access.USAGE)?.let(::listOf) ?: traffic?.let(::trafficTable) ?: listOf(WAITING)
@@ -88,37 +79,6 @@ class NetSampler(private val env: Env) : PageSampler {
         out += comment("dns lookups in the last 15 minutes")
         out += lookups()
         return out
-    }
-
-    @SuppressLint("MissingPermission") // gated on the location permission above
-    private fun nearby(): List<Line> {
-        val results = runCatching { wm.scanResults }.getOrNull().orEmpty().sortedByDescending { it.level }
-        if (results.isEmpty()) return listOf(note("none seen yet; android scans every few minutes"))
-        return table(
-            listOf(Col("dBm", right = true), Col("SIGNAL"), Col("BAND"), Col("CH", right = true), Col("SSID")),
-            results.take(20).map { r ->
-                val words = ProbeReader.strength(env.reader.wifiLevel(r.level))
-                val name = ssid(r)
-                listOf(
-                    cell(r.level.toString()),
-                    cell(words, Thresholds.signal(words)),
-                    cell(band(r.frequency)),
-                    cell(ProbeReader.channel(r.frequency).toString()),
-                    if (name == null) cell("(hidden)", Tone.DIM) else cell(name),
-                )
-            },
-        )
-    }
-
-    private fun ssid(r: ScanResult): String? {
-        val raw = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) r.wifiSsid?.toString() else @Suppress("DEPRECATION") r.SSID
-        return raw?.removeSurrounding("\"")?.takeIf { it.isNotBlank() && it != "<unknown ssid>" }
-    }
-
-    private fun band(mhz: Int) = when {
-        mhz < 3000 -> "2.4G"
-        mhz < 5925 -> "5G"
-        else -> "6G"
     }
 
     private fun trafficTable(t: Map<Int, Pair<Long, Long>>): List<Line> {

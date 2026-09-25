@@ -113,6 +113,16 @@ signal *very strong*/*strong* green, *medium* yellow, *weak*/*very weak*/*no sig
   `pm list packages -U`. Parsers for all of them exist in `monitor/Parsers.kt`, with tests.
 - **Shizuku access** goes through a user service (`ShellService` + `IShellService.aidl`) running as
   the shell user; `ShizukuBridge` handles state, permission and binding.
+- **Shizuku dies without warning** (reboot, the user stopping it, its process killed) and its API
+  then throws from calls that looked safe (`checkSelfPermission`, `requestPermission` after a
+  successful `pingBinder`). Every call into it is guarded in `ShizukuBridge`; tested by killing
+  `shizuku_server` (`adb shell kill $(adb shell pidof shizuku_server)`) mid-sampling, cold starts
+  while it's stopped, and killing only `<pkg>:monitor`. It reconnects ~2 s after Shizuku restarts.
+- **Bluetooth signal of a connected device:** LE devices connected to the phone usually stop
+  advertising, so a scan never hears them; read `BluetoothGatt.readRemoteRssi()` over our own
+  GATT client on the existing link instead (only for the tracked device; closed on leave).
+- **Wi-Fi scans:** apps may start 4 per 2 minutes; the emulator's cached results can be very old
+  (`adb shell cmd wifi start-scan` forces a fresh one when testing).
 - **DNS monitor** (`DnsVpnService`): a VPN that routes only the fake resolver address. It must call
   `VpnService.prepare(this)` itself before `establish()`, or `establish()` silently returns null.
   Test with `adb shell appops set <pkg> ACTIVATE_VPN allow`, then `adb root` and

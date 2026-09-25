@@ -3,6 +3,7 @@ package com.asnidev.sysreadoutmonitor.page
 import android.content.Context
 import android.os.Build
 import android.provider.Settings
+import android.util.Log
 import com.asnidev.sysreadoutmonitor.data.MonitorPrefs
 import com.asnidev.sysreadoutmonitor.log.Access
 import com.asnidev.sysreadoutmonitor.log.ProbeReader
@@ -18,6 +19,7 @@ import com.asnidev.sysreadoutmonitor.term.Tone
 import com.asnidev.sysreadoutmonitor.term.needs
 import com.asnidev.sysreadoutmonitor.term.needsRow
 import com.asnidev.sysreadoutmonitor.term.row
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -28,8 +30,16 @@ import kotlinx.coroutines.SupervisorJob
 class Env(val context: Context, val shizuku: ShizukuBridge, val prefs: () -> MonitorPrefs) {
     val serial = Dispatchers.Default.limitedParallelism(1)
 
-    /** For slow work a sampler starts and waits for (reverse DNS, app sizes); samplers cancel their jobs in stop(). */
-    val scope = CoroutineScope(SupervisorJob() + serial)
+    /**
+     * For slow work a sampler starts and waits for (reverse DNS, app sizes); samplers
+     * cancel their jobs in stop(). A failure there is logged, never a crash.
+     */
+    val scope = CoroutineScope(
+        SupervisorJob() + serial + CoroutineExceptionHandler { _, e -> Log.w("SRM", "background work failed", e) },
+    )
+
+    /** The Bluetooth device the scan page follows; set from the UI thread. */
+    @Volatile var tracked: String? = null
 
     /** Licences the user opened on the conf page; set from the UI thread. */
     @Volatile var openLicences: Set<String> = emptySet()
@@ -51,9 +61,9 @@ class Env(val context: Context, val shizuku: ShizukuBridge, val prefs: () -> Mon
         access == Access.NOTIFICATIONS -> if (NotifLog.connected) null else "needs notification access, tap to grant"
         access == Access.SHIZUKU -> when (shizuku.state.value) {
             ShizukuState.READY -> null
-            ShizukuState.NOT_INSTALLED -> "needs shizuku, tap to install it"
-            ShizukuState.NOT_RUNNING -> "needs shizuku, tap to set up"
-            ShizukuState.UNSUPPORTED -> "shizuku is too old, tap to update it"
+            ShizukuState.NOT_INSTALLED -> "needs shizuku (optional), tap to set it up"
+            ShizukuState.NOT_RUNNING -> "shizuku isn't running, tap to start it"
+            ShizukuState.UNSUPPORTED -> "needs a newer shizuku, tap to set it up"
             ShizukuState.NO_PERMISSION -> "needs shizuku permission, tap to allow"
             ShizukuState.CONNECTING -> "connecting to shizuku…"
         }

@@ -35,7 +35,7 @@ class AppsSampler(private val env: Env) : PageSampler {
         val out = ArrayList<Line>()
         out += env.probeRows(
             listOf("today", "ntf"),
-            own = mapOf("today" to today?.let { (onMs, unlocks) -> row("today", "screen on ${duration(onMs)}  $unlocks unlocks") }),
+            own = mapOf("today" to today?.takeIf { usage }?.let { (onMs, unlocks) -> row("today", "screen on ${duration(onMs)}  $unlocks unlocks") }),
         )
 
         out += comment("screen time today")

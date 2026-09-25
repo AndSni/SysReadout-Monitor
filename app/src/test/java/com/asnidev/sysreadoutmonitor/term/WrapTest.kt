@@ -110,6 +110,23 @@ class WrapTest {
     }
 
     @Test
+    fun centredLinesArePaddedAndStillWrapWhenTooWide() {
+        val line = Line(listOf(Span("SYSTEM READOUT MONITOR", Tone.KEY)), center = true)
+        assertEquals("    SYSTEM READOUT MONITOR", Wrap.lines(line, 30).single().text)
+        assertEquals(Tone.KEY, Wrap.lines(line, 30).single().spans.last().tone)
+        assertEquals(listOf("SYSTEM READOUT", "MONITOR"), texts(line, 16))
+    }
+
+    @Test
+    fun anchorsStayOnTheFirstRow() {
+        val line = Line(listOf(Span("[shizuku] and a tail long enough to wrap")), anchor = "shizuku")
+        val out = Wrap.lines(line, 12)
+        assertEquals("shizuku", out.first().anchor)
+        assertTrue(out.drop(1).all { it.anchor == null })
+        assertEquals("shizuku", Wrap.lines(line, 80).single().anchor)
+    }
+
+    @Test
     fun promptHostFromDeviceName() {
         assertEquals("xperia-10-iv", Prompt.host("Xperia 10 IV", "XQ-CC54"))
         assertEquals("xq-cc54", Prompt.host(null, "XQ-CC54"))

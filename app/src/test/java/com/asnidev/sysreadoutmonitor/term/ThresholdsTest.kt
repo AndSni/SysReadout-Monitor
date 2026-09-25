@@ -72,3 +72,41 @@ class ThresholdsTest {
         assertEquals(Tone.CRIT, Thresholds.flag(Tone.CRIT))
     }
 }
+
+class SignalTest {
+
+    @Test
+    fun percentLikeNmcli() {
+        assertEquals(100, Signal.percent(-30))
+        assertEquals(100, Signal.percent(-40))
+        assertEquals(50, Signal.percent(-70))
+        assertEquals(0, Signal.percent(-100))
+        assertEquals(0, Signal.percent(-120))
+    }
+
+    @Test
+    fun wordsAndTones() {
+        assertEquals("very strong", Signal.words(-50))
+        assertEquals("strong", Signal.words(-66))
+        assertEquals("medium", Signal.words(-70))
+        assertEquals("weak", Signal.words(-80))
+        assertEquals("very weak", Signal.words(-95))
+        assertEquals(Tone.GOOD, Thresholds.dbm(-60))
+        assertEquals(Tone.WARN, Thresholds.dbm(-77))
+        assertEquals(Tone.CRIT, Thresholds.dbm(-78))
+    }
+
+    @Test
+    fun spreadNeedsThreeReadings() {
+        assertEquals(null, Signal.spread(listOf(-50, -60)))
+        assertEquals(0.0, Signal.spread(listOf(-50, -50, -50))!!, 1e-9)
+        assertEquals(4.0, Signal.spread(listOf(-46, -54, -46, -54))!!, 1e-9)
+    }
+
+    @Test
+    fun bars() {
+        assertEquals("          ", Signal.bars(0, 10))
+        assertEquals("|||||     ", Signal.bars(50, 10))
+        assertEquals("||||||||||", Signal.bars(100, 10))
+    }
+}

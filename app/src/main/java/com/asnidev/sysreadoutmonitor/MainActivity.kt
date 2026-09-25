@@ -23,6 +23,7 @@ import com.asnidev.sysreadoutmonitor.log.Access
 import com.asnidev.sysreadoutmonitor.monitor.DnsVpnService
 import com.asnidev.sysreadoutmonitor.monitor.NotifListener
 import com.asnidev.sysreadoutmonitor.monitor.ShizukuState
+import com.asnidev.sysreadoutmonitor.page.ConfSampler
 import com.asnidev.sysreadoutmonitor.page.Page
 import com.asnidev.sysreadoutmonitor.term.Tap
 import com.asnidev.sysreadoutmonitor.ui.MonitorScreen
@@ -62,7 +63,9 @@ class MainActivity : ComponentActivity() {
 
     private fun onTap(tap: Tap) {
         when (tap) {
-            is Tap.Goto -> vm.pendingJump = tap.page
+            is Tap.Goto -> vm.jump(tap.page, tap.anchor)
+            is Tap.Track -> vm.track(tap.address)
+            is Tap.Intent -> open(Intent(tap.action))
             is Tap.Grant -> grant(tap.access)
             is Tap.Conf -> vm.conf(tap.action)
             is Tap.DnsMonitor -> dnsMonitor(tap.on)
@@ -111,10 +114,12 @@ class MainActivity : ComponentActivity() {
     private fun shizuku() {
         val bridge = vm.shizuku
         bridge.refresh()
+        val guide = { vm.jump(Page.CONF, ConfSampler.SHIZUKU_ANCHOR) }
         when (bridge.state.value) {
-            ShizukuState.NOT_INSTALLED, ShizukuState.UNSUPPORTED -> open(Intent(Intent.ACTION_VIEW, Uri.parse(SHIZUKU_DOWNLOAD)))
-            // Starting it is up to the user (wireless debugging, adb or root); conf explains how.
-            ShizukuState.NOT_RUNNING -> if (!bridge.openApp()) vm.pendingJump = Page.CONF
+            // What Shizuku is and how to set it up, step by step, before sending anyone to a download page.
+            ShizukuState.NOT_INSTALLED, ShizukuState.UNSUPPORTED -> guide()
+            // Starting it is up to the user (wireless debugging, adb or root), in the Shizuku app.
+            ShizukuState.NOT_RUNNING -> if (!bridge.openApp()) guide()
             ShizukuState.NO_PERMISSION -> bridge.requestPermission()
             ShizukuState.CONNECTING, ShizukuState.READY -> vm.resumed()
         }
@@ -129,17 +134,16 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Debug builds only, so states can be looked at without tapping through the UI:
-     * `--es page cpu` opens a page, `--ef textsp 20` sets the text size (not saved).
+     * `--es page cpu` opens a page (`--es anchor shizuku` scrolls to that line), `--ef textsp 20`
+     * sets the text size (not saved), `--es track <address>` follows a Bluetooth device.
      */
     private fun debugExtras(intent: Intent?) {
         if (!BuildConfig.DEBUG || intent == null) return
-        intent.getStringExtra("page")?.let { tab -> Page.byTab(tab)?.let { vm.pendingJump = it } }
+        intent.getStringExtra("page")?.let { tab -> Page.byTab(tab)?.let { vm.jump(it, intent.getStringExtra("anchor")) } }
         if (intent.hasExtra("textsp")) {
             vm.textSp = intent.getFloatExtra("textsp", vm.textSp).coerceIn(MonitorPrefs.MIN_SP, MonitorPrefs.MAX_SP)
         }
+        intent.getStringExtra("track")?.let { vm.track(it) }
     }
 
-    private companion object {
-        const val SHIZUKU_DOWNLOAD = "https://shizuku.rikka.app/download/"
-    }
 }

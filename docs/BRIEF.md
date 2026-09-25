@@ -137,6 +137,7 @@ flavour text for the prompt line.
 | 6 | `apps` | `dumpsys usagestats` | screen-on time and unlocks today (`today`); notifications showing now and received today (`ntf`, notification access); screen time per app (table, usage); notifications per app today (table, notification access); currently running foreground services (from usage events) |
 | 7 | `sensors` | `sensors` | ambient light, pressure, altitude, temperature, humidity (`env`); compass (`compass`); GPS fix (`gps`) and satellites per constellation (`gnss`), plus a per-satellite table (constellation, ID, C/N0, used) from `GnssStatus`; sunrise and sunset (`sun`); moon phase (`moon`); steps (`steps`); radios (`radio`: airplane, Bluetooth, NFC, location); connected Bluetooth devices and their battery (`bt`); audio volumes and output (`audio`); now playing (`media`, Shizuku); next alarm (`alarm`); debug state (`debug`: developer options, adb, wireless adb, USB) |
 | 8 | `storage` | `df -h` | internal storage with a meter (`fs`); removable volumes (`sd`); **new:** app sizes (app, data, cache) for the largest apps via `StorageStatsManager` (usage access) |
+| 5b | `scan` | `nmcli device wifi list; bluetoothctl scan on` | *Added 2026-09-25 at the user's request.* Every Wi-Fi access point (in-use `*`, dBm, % on nmcli's scale, ±dB spread and how many recent scans saw it, bars, band, channel, SSID) to find the best network, and every Bluetooth device (paired ones even when silent, then nearby named/unnamed) with dBm, %, a stronger/weaker arrow and bars, to find a lost device such as a watch. Tap a device to track it: full-width meter on top; if it's connected to the phone (and so not advertising) its signal is read over the link with GATT `readRemoteRssi`. Scans only while visible (BLE low-latency scan; Wi-Fi every 30 s, Android's limit). Needs location (Wi-Fi) and nearby devices (Bluetooth) |
 | 9 | `journal` | `journalctl -f` | the launcher's event stream: `net power bat therm mem pkg` (system), `fg svc scrn lock` (usage), `proc conn logE logW` (Shizuku), `dns` (DNS monitor), `ntf` (notifications). Newest at the bottom, auto-scrolls while at the bottom, timestamps on (dim), keys coloured by source |
 | 10 | `conf` | `nano ~/.config/srm.conf` | refresh interval (1/2/5/10 s; shell-based tables at least 5 s); which pages are shown and their order; access status with grant actions (usage access, notification access, Shizuku with the start instructions, DNS monitor with its consent and caveats, each runtime permission); reverse-DNS toggle; logcat level (errors / +warnings); show notification titles; about, version, licences |
 
@@ -207,4 +208,15 @@ Commit at the end of each milestone with the checks green.
 - **Background work** that takes seconds (reverse DNS, sizing every app) runs on the samplers'
   serial dispatcher in `Env.scope`, is cancelled when its page leaves the screen, and pokes the
   coordinator when done.
-- **Debug extras:** `--es page <tab>`, `--ef textsp <sp>` (not saved).
+- **Debug extras:** `--es page <tab>` (`--es anchor shizuku` scrolls conf to that line),
+  `--ef textsp <sp>` (not saved), `--es track <bt address>`.
+- **Opens on sys** (user request, 2026-09-25): the app starts on `sys` every time; conf
+  `remember_page = on` brings back the brief's "remembers the last page".
+- **Banner** (user request): `SYSTEM READOUT MONITOR` / `- ASNIDEV INC 2026-<year> -`, centred
+  in the fastfetch-logo colour at the top of `sys`; conf `banner` switches it off.
+- **Shizuku is optional** (user request): every page is useful without it. Without Shizuku the
+  cores show clock meters (current/max, readable by apps) instead of load, and now playing comes
+  from media sessions through notification access. Conf has a `[shizuku]` section with status and
+  three linked steps (install, start, allow); a page's `! needs shizuku (optional), tap to set it
+  up` jumps there, `shizuku isn't running, tap to start it` opens Shizuku, `needs shizuku
+  permission` asks for it. The app must survive Shizuku dying at any time: see CLAUDE.md.
