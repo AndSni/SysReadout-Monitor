@@ -220,3 +220,19 @@ Commit at the end of each milestone with the checks green.
   three linked steps (install, start, allow); a page's `! needs shizuku (optional), tap to set it
   up` jumps there, `shizuku isn't running, tap to start it` opens Shizuku, `needs shizuku
   permission` asks for it. The app must survive Shizuku dying at any time: see CLAUDE.md.
+
+## 9. Verification (milestone 6, 2026-09-25, emulator `sharpright_avd`, Android 14)
+
+- **CPU** (release build, `top -b -n 6 -d 2` on the app and its Shizuku service, first sample
+  dropped): 1.6–1.7 % of one core with any page visible, Shizuku pages included; 0 in the
+  background (0 CPU ticks in 30 s, twice, after the cursor blink was tied to the lifecycle; before
+  that fix it was 0.1–1.0 % with one 4.9 % outlier).
+- **20 sp:** every page screenshotted; long rows, table cells and prompts wrap, nothing is cut.
+- **Permissions:** every page checked with location, phone, bluetooth, nearby devices, activity,
+  usage access, notification access and Shizuku granted over adb, then all revoked.
+- **Shizuku dying:** `shizuku_server` killed 5 times mid-sampling, cold start while stopped, only the
+  app's shell service killed: no crash, reconnects ~2 s after Shizuku is back.
+- **DNS monitor:** started as in CLAUDE.md; lookups from `ping` (root) and Chrome appeared per app
+  on net and in the journal; stopped cleanly (`tun0` gone).
+- **Still open:** the user's check on their phone (debug build installed 2026-09-25) and taps,
+  which only the user tests.
