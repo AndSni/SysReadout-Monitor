@@ -69,6 +69,10 @@ spaces as hyphens, falling back to `Build.MODEL`) as the host.
 | Secondary: units, timestamps, PIDs, comments, meter brackets | intense black `#7F8C8D` |
 | Section comments (`# temperatures`) | intense black `#7F8C8D` |
 | Things you can tap (e.g. `! needs shizuku, tap to set up`) | cyan `#1ABC9C`, underlined |
+| Table headers | intense foreground `#3DAEE9` bold (Konsole draws bold default text in the intense colour) |
+| Journal keys by source: system / usage / shell (Shizuku) / dns / notifications | `#3DAEE9` bold / magenta `#9B59B6` / blue `#1D99F3` / intense green `#1CDC9A` / intense yellow `#FDBC4B`; `logE` red, `logW` yellow |
+
+Tones live in `term/Line.kt` (`Tone`), their colours in `ui/Breeze.kt`. Samplers only pick tones.
 
 Put every threshold in one place (a `Thresholds` object) with unit tests. Starting values:
 CPU % and memory used % warn at 70 / critical at 90; battery warn < 30 / critical < 15;

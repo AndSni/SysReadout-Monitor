@@ -108,6 +108,12 @@ for only when the page or row that needs it is used.
 - **Lines** are lists of coloured spans (`AnnotatedString`), monospaced Hack, one line each, no
   wrapping. Keys in a left column, as in the launcher's rows. Tables use fixed-width columns with a
   bold header line.
+  *As built:* samplers emit `term.Line`s (spans with a `Tone`); `term.Wrap` splits each to the
+  screen's column count before display, continuing at a hanging indent (value column for rows,
+  last column for tables), preferring field breaks (two spaces). Each on-screen row is one
+  unwrapped `BasicText`, and nothing is cut off at any text size. The key column is 8 wide
+  (`compass` + a space; the launcher's 6 glued `compass` to its value). Meters stretch to the
+  remaining width, htop-style with the label inside. Tabs use the system UI font, like Konsole's.
 - **Text size:** pinch to zoom, 8–20 sp, remembered.
 - **Missing access:** a page or row that needs something shows a cyan, tappable line such as
   `! needs shizuku, tap to set up` or `! needs location permission, tap to allow`, which runs the
