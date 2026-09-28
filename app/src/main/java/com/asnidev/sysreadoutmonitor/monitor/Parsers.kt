@@ -4,7 +4,8 @@ package com.asnidev.sysreadoutmonitor.monitor
 data class Proc(val pid: Int, val uid: Int, val cpu: Float, val resBytes: Long, val name: String) {
     /** App processes are named after their package, optionally with ":suffix". */
     val pkg: String get() = name.substringBefore(':')
-    val isApp: Boolean get() = uid >= FIRST_APP_UID
+    /** In any user: the work profile's apps have uids like 1010123. */
+    val isApp: Boolean get() = appIdOf(uid) >= FIRST_APP_UID
 }
 
 /** A socket from /proc/net/{tcp,tcp6,udp,udp6}. */
@@ -24,10 +25,43 @@ data class LogLine(val time: Double, val level: Char, val tag: String, val messa
 /** One app's share of battery since the last charge, and what used most of it. */
 data class Drain(val uid: Int, val mah: Double, val mostly: String?)
 
+/** Battery use of one part of the phone since the last charge, from `dumpsys batterystats --usage`. */
+data class Component(val name: String, val mah: Double, val durationMs: Long?)
+
+/** The "Estimated power use" head of `dumpsys batterystats --usage`. */
+data class PowerUse(val capacity: Int?, val computedDrain: Int?, val actualDrain: String?, val components: List<Component>)
+
+/** The "Statistics since last charge" block of `dumpsys batterystats`; nulls where the phone doesn't say. */
+data class ChargeStats(
+    val estimatedCapacity: Int? = null,
+    val learnedCapacity: Int? = null,
+    val minLearned: Int? = null,
+    val maxLearned: Int? = null,
+    val onBatteryMs: Long? = null,
+    val screenOffMs: Long? = null,
+    val screenOnMs: Long? = null,
+    val screenOns: Int? = null,
+    val discharge: Int? = null,
+    val screenOffDischarge: Int? = null,
+    val screenOnDischarge: Int? = null,
+    val lightDozeDischarge: Int? = null,
+    val deepDozeDischarge: Int? = null,
+    val since: String? = null,
+)
+
 /** Busy and total jiffies of one CPU core from /proc/stat. */
 data class CoreTicks(val busy: Long, val total: Long)
 
 const val FIRST_APP_UID = 10_000
+
+/** Each Android user (the work profile is one) gets its own block of this many uids. */
+const val PER_USER_RANGE = 100_000
+
+/** The user a uid belongs to: 0 for the owner, e.g. 10 for a work profile. */
+fun userOf(uid: Int): Int = uid / PER_USER_RANGE
+
+/** The uid without its user: the same app has the same app id in every user. */
+fun appIdOf(uid: Int): Int = uid % PER_USER_RANGE
 
 object Parsers {
 
@@ -204,7 +238,65 @@ object Parsers {
     fun batteryUid(token: String): Int? {
         token.toIntOrNull()?.let { return it }
         val app = Regex("^u(\\d+)a(\\d+)$").find(token) ?: return null
-        return app.groupValues[1].toInt() * 100_000 + FIRST_APP_UID + app.groupValues[2].toInt()
+        return app.groupValues[1].toInt() * PER_USER_RANGE + FIRST_APP_UID + app.groupValues[2].toInt()
+    }
+
+    /** dumpsys durations like "4d 5h 13m 46s 939ms" or "2s 725ms" in ms; null if there's none. */
+    fun duration(text: String): Long? {
+        val parts = Regex("(\\d+)(ms|d|h|m|s)\\b").findAll(text).toList()
+        if (parts.isEmpty()) return null
+        return parts.sumOf { m ->
+            val n = m.groupValues[1].toLong()
+            when (m.groupValues[2]) {
+                "d" -> n * 86_400_000L
+                "h" -> n * 3_600_000L
+                "m" -> n * 60_000L
+                "s" -> n * 1_000L
+                else -> n
+            }
+        }
+    }
+
+    /** The capacity, drain and per-component lines at the top of `dumpsys batterystats --usage`. */
+    fun powerUse(text: String): PowerUse {
+        val head = Regex("Capacity: (\\d+), Computed drain: ([\\d.]+)(?:, actual drain: ([\\d.-]+))?").find(text)
+        val global = text.substringAfter("\n    Global\n", "").lineSequence()
+            .takeWhile { it.startsWith("      ") && !it.trimStart().startsWith("UID ") }
+        val components = global.mapNotNull { line ->
+            val m = Regex("^\\s+([\\w_]+): ([\\d.]+)(.*)$").find(line) ?: return@mapNotNull null
+            val mah = m.groupValues[2].toDoubleOrNull() ?: return@mapNotNull null
+            Component(m.groupValues[1], mah, m.groupValues[3].substringAfter("duration:", "").let { if (it.isBlank()) null else duration(it) })
+        }.filter { it.mah > 0 }.sortedByDescending { it.mah }.toList()
+        return PowerUse(
+            head?.groupValues?.get(1)?.toIntOrNull(),
+            head?.groupValues?.get(2)?.toDoubleOrNull()?.toInt(),
+            head?.groupValues?.get(3)?.takeIf { it.isNotEmpty() },
+            components,
+        )
+    }
+
+    /** The "Statistics since last charge" block of `dumpsys batterystats`. */
+    fun chargeStats(text: String): ChargeStats {
+        val block = text.substringAfter("Statistics since last charge:", "")
+        fun mah(label: String) = Regex("^\\s+${Regex.escape(label)}: (\\d+) mAh", RegexOption.MULTILINE).find(block)?.groupValues?.get(1)?.toIntOrNull()
+        fun time(label: String) = Regex("^\\s+${Regex.escape(label)}: ([^(\\n]+)", RegexOption.MULTILINE).find(block)?.groupValues?.get(1)?.let(::duration)
+        val screen = Regex("^\\s+Screen on: ([^(\\n]+)\\([^)]*\\) (\\d+)x", RegexOption.MULTILINE).find(block)
+        return ChargeStats(
+            estimatedCapacity = mah("Estimated battery capacity"),
+            learnedCapacity = mah("Last learned battery capacity"),
+            minLearned = mah("Min learned battery capacity"),
+            maxLearned = mah("Max learned battery capacity"),
+            onBatteryMs = time("Time on battery"),
+            screenOffMs = time("Time on battery screen off"),
+            screenOnMs = screen?.groupValues?.get(1)?.let(::duration),
+            screenOns = screen?.groupValues?.get(2)?.toIntOrNull(),
+            discharge = mah("Discharge"),
+            screenOffDischarge = mah("Screen off discharge"),
+            screenOnDischarge = mah("Screen on discharge"),
+            lightDozeDischarge = mah("Device light doze discharge"),
+            deepDozeDischarge = mah("Device deep doze discharge"),
+            since = Regex("^\\s+Start clock time: (\\S+)", RegexOption.MULTILINE).find(block)?.groupValues?.get(1),
+        )
     }
 
     /** `pm list packages -U` → uid to packages (shared uids list several). */

@@ -55,7 +55,7 @@ open.
 | `sys` | `fastfetch` | device, Android version and security patch, kernel, build properties (A/B slot, verified boot, bootloader, treble), chipset, GPU and graphics APIs, display, uptime, boot count, time, app counts |
 | `cpu` | `top` | cores with load meters (Shizuku) or clock meters (without), load average, thermal status and headroom, every temperature sensor, the monitor's own use, processes by CPU |
 | `mem` | `free -h` | RAM and swap meters, memory detail, processes by memory |
-| `power` | `upower -d` | battery meter, state, temperature, health, voltage, current, watts, charge counter, capacity, cycles, time to full, battery saver, doze, do-not-disturb, ringer, battery use per app since the last charge, wake locks |
+| `power` | `upower -d` | battery meter, state, temperature, health, voltage, current and watts, average current and energy left, charge counter, capacity, cycles, time to full, the charger and the most it may deliver (V, A, W), cell technology and low-battery flag, battery saver, doze, do-not-disturb, ringer. With Shizuku, since the last charge: drain overall and per hour, with the screen on and off, in light and deep doze, rated, estimated and learned capacity, time left at that pace, battery use by part of the phone and by app, and wake locks held now |
 | `net` | `ip addr; ss -tunp` | connection and speed, Wi-Fi signal, name, channel and standard, networks nearby, IP and gateway, mobile operator and signal, signal quality, 5G / LTE-CA and bandwidths, serving cell, traffic since boot and this month, traffic per app today, open connections per app with server names, recent DNS lookups per app |
 | `scan` | `nmcli device wifi list; bluetoothctl scan on` | see [section 4](#4-the-scan-page-find-a-network-or-a-device) |
 | `apps` | `dumpsys usagestats` | screen-on time and unlocks today, notifications, screen time per app, notifications per app, foreground services running |
@@ -76,11 +76,12 @@ Processes and connections are only seen while the page is open. Each source can 
 
 ## 4. The scan page: find a network or a device
 
-**Wi-Fi.** Every access point in range, strongest first:
+**Wi-Fi.** Every access point in range, strongest first, its name on the line under its numbers:
 
 ```
-  dBm  % ±dB SEEN SIGNAL   BAND CH SSID
-* -52 80 1.2  5/5 |||||||| 5G   36 HomeNet
+  dBm  % ±dB SEEN BAND CH SIGNAL
+* -52 80 1.2  5/5 5G   36 ||||||||
+    HomeNet
 ```
 
 - `*` marks the network you're connected to; its signal updates live.
@@ -92,10 +93,11 @@ Processes and connections are only seen while the page is open. Each source can 
 - Needs the location permission and location switched on: Android shows no scan results without
   them.
 
-**Bluetooth.** Paired devices first, even when silent, then everything else heard nearby, each
-with dBm, %, and `↑` (stronger than a moment ago), `↓` (weaker) or `=`.
+**Bluetooth.** Paired devices first, even when silent (`linked`: connected but not advertising;
+`unseen`: not heard), then everything else heard nearby, each with dBm, %, and `↑` (stronger than
+a moment ago), `↓` (weaker) or `=`, and its name on the line below.
 
-**Finding a lost device.** Tap its name. It moves to the top with a full-width meter and
+**Finding a lost device.** Tap its name. It moves to the top of the page with a full-width meter and
 `↑`/`↓`. Walk around slowly and follow the numbers up; hold still for a moment at each spot,
 because Bluetooth readings jump. A device that's connected to your phone, like a watch, usually
 stops advertising, so SR Monitor reads its signal through the existing connection. A device that's
@@ -155,17 +157,22 @@ logcat, and the shell runs as `shell`.
    debugging" and follow its pairing steps (developer options must be on); older Android needs a
    computer with adb once; with root, start it with root.
 3. **allow**: let SR Monitor use it.
+4. **access** (once it's connected): one tap switches on usage and notification access through
+   Shizuku, the same switches as in Android's settings. They stay on after Shizuku stops.
 
 Without root, Shizuku stops when the phone restarts; start it again in the Shizuku app. Until then
 the pages show `! shizuku isn't running, tap to start it`. If Shizuku stops while SR Monitor is
 open, the pages switch to that line and pick up again by themselves about two seconds after
-Shizuku is back.
+Shizuku is back. If its helper keeps failing, SR Monitor leaves it alone for a while (30 s,
+doubling up to 5 minutes) and says so; tap the line to try again at once.
 
 ## 8. The DNS monitor
 
 Shows which app looks up which server name (`imap.gmail.com`, not just an IP), on the net page and
 in the journal. It's a local VPN that routes only DNS: each lookup is noted and passed on unchanged
-to your network's DNS server; nothing else goes through it and nothing is sent anywhere else.
+to your network's DNS server; only if the network names no DNS server at all does it fall back to
+Quad9 (9.9.9.9) and Cloudflare (1.1.1.1). Nothing else goes through it and nothing is sent
+anywhere else.
 Switch it on in `conf › dns_monitor`; Android asks once whether to allow the VPN.
 
 - Android allows one VPN at a time, so it can't run next to another VPN.
@@ -201,5 +208,7 @@ on, are the only things that keep working in the background; both only react to 
 ## 11. Privacy
 
 No ads, no analytics, no tracking, no accounts. Everything is read on the phone and kept in memory
-while the app runs; only your settings are stored. Nothing is sent anywhere: the only network use
-is the optional DNS monitor passing your apps' own lookups on to your DNS server.
+while the app runs; only your settings are stored. Nothing is sent anywhere. The only network use
+is the optional DNS monitor passing your apps' own lookups on to your DNS server (Quad9 or
+Cloudflare only if the network names none), and optional reverse-DNS lookups of connection
+addresses, made by Shizuku's helper.

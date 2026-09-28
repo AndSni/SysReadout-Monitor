@@ -1,9 +1,14 @@
 package com.asnidev.sysreadoutmonitor.page
 
 import android.content.Context
+import android.os.Process
 import android.os.SystemClock
+import android.os.UserManager
 import com.asnidev.sysreadoutmonitor.monitor.FIRST_APP_UID
+import com.asnidev.sysreadoutmonitor.monitor.PER_USER_RANGE
 import com.asnidev.sysreadoutmonitor.monitor.Proc
+import com.asnidev.sysreadoutmonitor.monitor.appIdOf
+import com.asnidev.sysreadoutmonitor.monitor.userOf
 
 /**
  * The names people know apps by, for packages, processes and uids. Cached;
@@ -13,6 +18,12 @@ import com.asnidev.sysreadoutmonitor.monitor.Proc
 class Labels(context: Context) {
 
     private val pm = context.packageManager
+    private val myUser = userOf(Process.myUid())
+
+    /** Our own profiles' user ids (a work profile's among them); UserHandle's hash is its id. */
+    private val workUsers: Set<Int> = runCatching {
+        context.getSystemService(UserManager::class.java).userProfiles.map { it.hashCode() }.filter { it != myUser }.toSet()
+    }.getOrDefault(emptySet())
     private val labels = HashMap<String, String?>()
     private val uidNames = HashMap<Int, String>()
     private var clearedAt = SystemClock.elapsedRealtime()
@@ -59,26 +70,41 @@ class Labels(context: Context) {
         return if (suffix.isEmpty()) label else label + ":" + suffix.joinToString(":")
     }
 
+    /**
+     * The name for a uid. A uid from another Android user (a work profile's apps,
+     * uids like 1010123) is named through the same app id in our own user and
+     * marked [w] (or [u<n>] for another user): asking the package manager about
+     * another user's uid throws a SecurityException.
+     */
     fun uidLabel(uid: Int): String {
         expire()
         return uidNames.getOrPut(uid) {
             when (uid) {
-                -1 -> "?"
+                -4 -> return@getOrPut "removed apps" // NetworkStats.Bucket.UID_REMOVED
+                -5 -> return@getOrPut "tethering" // NetworkStats.Bucket.UID_TETHERING
+            }
+            if (uid < 0) return@getOrPut "?"
+            val user = userOf(uid)
+            val appId = appIdOf(uid)
+            val name = when (appId) {
                 0 -> "root"
                 1000 -> "system"
                 SHELL_UID -> "shell"
-                -4 -> "removed apps" // NetworkStats.Bucket.UID_REMOVED
-                -5 -> "tethering" // NetworkStats.Bucket.UID_TETHERING
-                else -> {
-                    val pkgs = pm.getPackagesForUid(uid)?.toList().orEmpty()
+                else -> packagesFor(myUser * PER_USER_RANGE + appId).let { pkgs ->
                     // Shared uids list several packages; prefer one with a real name.
-                    pkgs.firstNotNullOfOrNull { appLabel(it) }
-                        ?: pkgs.firstOrNull()?.let(::shortPkg)
-                        ?: if (uid < FIRST_APP_UID) "uid $uid" else "app $uid"
-                }
+                    pkgs.firstNotNullOfOrNull { appLabel(it) } ?: pkgs.firstOrNull()?.let(::shortPkg)
+                } ?: if (appId < FIRST_APP_UID) "uid $appId" else "app $appId"
+            }
+            when (user) {
+                myUser -> name
+                in workUsers -> "$name [w]"
+                else -> "$name [u$user]"
             }
         }
     }
+
+    private fun packagesFor(uid: Int): List<String> =
+        runCatching { pm.getPackagesForUid(uid)?.toList() }.getOrNull().orEmpty()
 
     companion object {
         const val SHELL_UID = 2000

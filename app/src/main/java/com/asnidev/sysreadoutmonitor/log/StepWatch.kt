@@ -5,6 +5,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.os.SystemClock
 import java.time.LocalDate
 
 /**
@@ -18,6 +19,8 @@ class StepWatch(private val context: Context) : SensorEventListener {
     private val store = context.getSharedPreferences("steps", Context.MODE_PRIVATE)
     @Volatile private var count: Float? = null
     private var running = false
+    private var savedLast = -1f
+    private var savedAt = 0L
 
     fun update(want: Boolean) {
         val on = want && sensor != null && Access.ACTIVITY.runtimeGranted(context)
@@ -40,7 +43,13 @@ class StepWatch(private val context: Context) : SensorEventListener {
             base = 0f
             store.edit().putFloat("base", 0f).apply()
         }
-        store.edit().putFloat("last", now).apply()
+        // The count before midnight becomes tomorrow's base; saving it once a minute is plenty.
+        val clock = SystemClock.elapsedRealtime()
+        if (now != savedLast && clock - savedAt > 60_000L) {
+            store.edit().putFloat("last", now).apply()
+            savedLast = now
+            savedAt = clock
+        }
         return "${(now - base).toInt()} today  ${now.toInt()} since boot"
     }
 

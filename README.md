@@ -25,7 +25,7 @@ which shows the same data on the home screen.
 | `sys` | device, Android and patch level, kernel, build properties, chipset, GPU, display, uptime, app counts |
 | `cpu` | per-core meters, load, thermal status, every temperature sensor, busiest processes |
 | `mem` | RAM and swap meters, memory detail, processes by memory |
-| `power` | battery meter, voltage, current, watts, charge, cycles, modes, battery use per app, wake locks |
+| `power` | battery meter, voltage, current, watts, charger, cycles, capacity; with Shizuku drain since the last charge (screen on/off, doze), time left, use by part and by app, wake locks |
 | `net` | connection, Wi-Fi and mobile signal in words, IP, serving cell, 5G / LTE-CA, traffic, connections per app with server names, DNS lookups per app |
 | `scan` | every Wi-Fi access point and Bluetooth device with its signal in dBm and %, how steady it is, and whether it's getting stronger; tap a device to track it and find it |
 | `apps` | screen time, unlocks, notifications per app, running foreground services |
@@ -71,7 +71,9 @@ are requested at that moment.
 
 No ads, no analytics, no tracking, no accounts. Everything is read on the phone and kept in memory
 while the app runs; only your settings are stored. Nothing is sent anywhere: the only network use
-is the optional DNS monitor passing your apps' own lookups on to your DNS server.
+is the optional DNS monitor passing your apps' own lookups on to your DNS server (Quad9 or
+Cloudflare only if the network names none), and optional reverse-DNS lookups of connection
+addresses.
 
 ## Build
 

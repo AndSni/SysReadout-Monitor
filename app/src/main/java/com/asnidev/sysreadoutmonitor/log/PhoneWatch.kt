@@ -7,7 +7,6 @@ import android.telephony.TelephonyCallback
 import android.telephony.TelephonyDisplayInfo
 import android.telephony.TelephonyManager
 import androidx.annotation.RequiresApi
-import java.util.concurrent.Executors
 
 /**
  * What the status bar would call the network: "5G" on an LTE anchor (NSA),
@@ -41,7 +40,8 @@ class PhoneWatch(private val context: Context) {
                 }
             }
         }
-        runCatching { tm.registerTelephonyCallback(Executors.newSingleThreadExecutor(), cb) }.onSuccess { callback = cb }
+        // The main thread's executor: a new thread per registration would leak one on every visit.
+        runCatching { tm.registerTelephonyCallback(context.mainExecutor, cb) }.onSuccess { callback = cb }
     }
 
     @RequiresApi(Build.VERSION_CODES.S)

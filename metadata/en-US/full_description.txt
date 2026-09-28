@@ -6,7 +6,7 @@ The pages:
 * sys (fastfetch): device, Android version and patch, kernel, build properties, chipset, GPU, display, uptime, boot count, app counts.
 * cpu (top): a meter per core, clocks, load, thermal status, every temperature sensor, the busiest processes.
 * mem (free -h): RAM and swap meters, memory detail, processes by memory.
-* power (upower -d): battery meter, voltage, current, watts, charge, cycles, battery saver and doze, battery use per app, wake locks.
+* power (upower -d): everything the battery reports: meter, voltage, current, watts, charger, cycles, capacity; with Shizuku, drain since the last charge with the screen on and off, doze, time left, use by part of the phone and by app, wake locks.
 * net (ip addr; ss -tunp): connection, Wi-Fi and mobile signal in words, IP, serving cell, 5G and LTE-CA, traffic today and this month, open connections per app with server names, DNS lookups per app.
 * scan: every Wi-Fi access point and Bluetooth device in range with its signal in dBm and %, how steady it is, and whether it's getting stronger. Find the best network in the garden shed, or tap a lost watch and walk until the meter fills.
 * apps: screen time and unlocks today, notifications per app, foreground services still running.
@@ -25,6 +25,6 @@ Deeper monitoring, when you allow it. Every permission is asked for only when yo
 * Location, phone, nearby devices, Bluetooth, activity: Wi-Fi and cell details, satellites, Bluetooth signal, steps.
 * The optional DNS monitor, a local VPN that carries only DNS: which app looks up which server.
 
-No ads, no analytics, no tracking, no accounts. Nothing is sent anywhere; the only network use is the optional DNS monitor passing your apps' own lookups on to your DNS server.
+No ads, no analytics, no tracking, no accounts. Nothing is sent anywhere; the only network use is the optional DNS monitor passing your apps' own lookups on to your DNS server (Quad9 or Cloudflare only if the network names none), and optional reverse-DNS lookups of connection addresses.
 
 Forked from SysReadout Launcher. Free software under the GNU GPL v3.

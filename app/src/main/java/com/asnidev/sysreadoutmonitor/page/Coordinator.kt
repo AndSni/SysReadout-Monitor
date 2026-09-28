@@ -1,5 +1,6 @@
 package com.asnidev.sysreadoutmonitor.page
 
+import android.util.Log
 import com.asnidev.sysreadoutmonitor.term.Line
 import com.asnidev.sysreadoutmonitor.term.Span
 import com.asnidev.sysreadoutmonitor.term.Tone
@@ -70,6 +71,7 @@ class Coordinator(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
+                    Log.w("SRM", "${page.tab} sampler failed", e)
                     listOf(Line(listOf(Span("srm: ${page.tab}: ${e.javaClass.simpleName}: ${e.message}", Tone.CRIT))))
                 }
                 withTimeoutOrNull(intervalMs()) { pokes.receive() }

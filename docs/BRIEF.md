@@ -265,3 +265,21 @@ Commit at the end of each milestone with the checks green.
   byte-identical to a local JDK 21 build of the tag (whole-file SHA-256 `306390ef…d8db77`).
 - Installed on the user's phone (user 0) from the published APK after removing the debug build.
 - Not done: the fdroiddata merge request (read its MR template first, see CLAUDE.md).
+
+## 11. 0.1.1 (2026-09-28)
+
+- Fix: power and net showed `srm: … SecurityException` on the user's phone (work-profile uids).
+- Ported from the launcher: Shizuku bridge with time-limited calls, backoff, protocol check and
+  Sui; `ShellExec` (null on failure, capped output, separate thread pools); bounded DNS monitor
+  that takes itself down if its loop ends; settings corruption handler; sticky µA detection;
+  PhoneWatch executor leak; approximate location for sunrise; fewer step-counter writes;
+  `CHANGE_WIFI_STATE` (without it `startScan()` did nothing); unsigned release without a keystore
+  and no VCS info in the APK (F-Droid); `.claude/` no longer tracked; DNS fallback disclosed.
+- Power page (user request: "as much battery data as possible"): average current, energy left,
+  charger (type, max V/A/W, invalid charger), cell (technology, low, present), and with Shizuku the
+  "since last charge" block from `dumpsys batterystats` (drain per hour, screen on/off, doze,
+  rated/estimated/learned capacity, time left) and use per part from `--usage`. Kernel
+  `power_supply` files are not readable on the user's phone, even as shell.
+- Scan page (user request): each access point / device as a metrics line with its name on the next
+  line; the tracked device on top of the page.
+- conf `[shizuku] 4_access`: one tap grants usage and notification access through Shizuku.

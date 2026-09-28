@@ -50,10 +50,14 @@ fun Env.probeRows(ids: List<String>, own: Map<String, Line?> = emptyMap()): List
     return ids.mapNotNull { id -> own[id] ?: gateRow(id, needs(id)) ?: values[id]?.let { Paint.row(id, it) } }
 }
 
-/** "3h05m", "12m". */
+/** "4d05h", "3h05m", "12m". */
 fun duration(ms: Long): String {
     val m = ms / 60_000
-    return if (m >= 60) "${m / 60}h${"%02d".format(m % 60)}m" else "${m}m"
+    return when {
+        m >= 24 * 60 -> "${m / (24 * 60)}d${"%02d".format(m / 60 % 24)}h"
+        m >= 60 -> "${m / 60}h${"%02d".format(m % 60)}m"
+        else -> "${m}m"
+    }
 }
 
 /** A dim note in place of a table with nothing in it. */

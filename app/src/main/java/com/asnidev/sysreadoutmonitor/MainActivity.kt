@@ -91,7 +91,9 @@ class MainActivity : ComponentActivity() {
             Access.NONE -> Unit
             Access.USAGE -> open(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
             Access.NOTIFICATIONS -> notificationAccess()
-            Access.SHIZUKU -> shizuku()
+            Access.SHIZUKU -> {
+                shizuku()
+            }
             else -> runtime(access)
         }
     }
@@ -116,16 +118,17 @@ class MainActivity : ComponentActivity() {
         if (!direct) open(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
     }
 
-    private fun shizuku() {
+    private fun shizuku() = lifecycleScope.launch {
         val bridge = vm.shizuku
-        bridge.refresh()
+        bridge.refreshNow()
         val guide = { vm.jump(Page.CONF, ConfSampler.SHIZUKU_ANCHOR) }
         when (bridge.state.value) {
             // What Shizuku is and how to set it up, step by step, before sending anyone to a download page.
-            ShizukuState.NOT_INSTALLED, ShizukuState.UNSUPPORTED -> guide()
+            ShizukuState.NOT_INSTALLED, ShizukuState.UNSUPPORTED, ShizukuState.OFF -> guide()
             // Starting it is up to the user (wireless debugging, adb or root), in the Shizuku app.
             ShizukuState.NOT_RUNNING -> if (!bridge.openApp()) guide()
             ShizukuState.NO_PERMISSION -> bridge.requestPermission()
+            ShizukuState.FAILING -> bridge.restartHelper()
             ShizukuState.CONNECTING, ShizukuState.READY -> vm.resumed()
         }
     }

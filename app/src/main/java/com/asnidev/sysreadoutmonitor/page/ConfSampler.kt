@@ -141,7 +141,9 @@ class ConfSampler(private val env: Env) : PageSampler {
                 ShizukuState.NOT_RUNNING -> listOf(Span("installed, not running", Tone.WARN))
                 ShizukuState.UNSUPPORTED -> listOf(Span("too old, needs version 11 or newer", Tone.WARN))
                 ShizukuState.NO_PERMISSION -> listOf(Span("running, SR Monitor not allowed yet", Tone.WARN))
-            },
+                ShizukuState.FAILING -> listOf(Span("its helper keeps failing, tap to restart it", Tone.LINK, Tap.Grant(Access.SHIZUKU)))
+                ShizukuState.OFF -> listOf(Span("off", Tone.DIM))
+            } + if (env.shizuku.isSui) listOf(Span("  (sui, root)", Tone.DIM)) else emptyList(),
         )
         val installed = state != ShizukuState.NOT_INSTALLED && state != ShizukuState.UNSUPPORTED
         val running = installed && state != ShizukuState.NOT_RUNNING
@@ -167,6 +169,10 @@ class ConfSampler(private val env: Env) : PageSampler {
                 else -> listOf(Span("after step 2", Tone.DIM))
             },
         )
+        if (allowed && (env.missing(Access.USAGE) != null || env.missing(Access.NOTIFICATIONS) != null)) {
+            set("4_access", listOf(Span("tap to switch on usage and notification access through shizuku", Tone.LINK, Tap.Conf(ConfAction.ShizukuGrants))))
+            note("the same switches as in android's settings; they stay on after shizuku stops.")
+        }
         note("without root, shizuku stops when the phone restarts; start it again in the shizuku app (step 2). the pages show what needs it until then.")
     }
 

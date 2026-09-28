@@ -2,6 +2,7 @@ package com.asnidev.sysreadoutmonitor.log
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.pm.PackageManager
 import android.location.GnssStatus
 import android.location.Location
 import android.location.LocationListener
@@ -10,6 +11,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import androidx.core.content.ContextCompat
 import java.util.Locale
 import kotlin.math.abs
 
@@ -33,6 +35,11 @@ class LocationWatch(private val context: Context) {
 
     private fun granted() = Access.LOCATION.runtimeGranted(context)
 
+    /** Approximate location is enough for a last known position (sunrise). */
+    private fun anyLocationGranted() = Access.LOCATION.permissions.any {
+        ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+    }
+
     @SuppressLint("MissingPermission") // checked by granted()
     fun update(gps: Boolean) {
         val want = gps && granted()
@@ -53,7 +60,7 @@ class LocationWatch(private val context: Context) {
     /** Any recent position, for things that don't need GPS precision (sunrise). */
     @SuppressLint("MissingPermission")
     fun lastKnown(): Location? {
-        if (!granted()) return null
+        if (!anyLocationGranted()) return null
         val providers = buildList {
             add(LocationManager.GPS_PROVIDER)
             add(LocationManager.NETWORK_PROVIDER)

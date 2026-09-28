@@ -23,8 +23,8 @@ android {
         applicationId = "com.sysreadoutmonitor.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.1.1"
     }
 
     signingConfigs {
@@ -41,9 +41,13 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig =
-                if (keystoreProperties.isNotEmpty()) signingConfigs.getByName("release")
-                else signingConfigs.getByName("debug")
+            // No META-INF/version-control-info.textproto: it records how the source was checked
+            // out (commit, or an error in a worktree or tarball), which F-Droid's build would have
+            // to reproduce byte for byte.
+            vcsInfo.include = false
+            // Without keystore.properties (e.g. on F-Droid's build server) the release APK is
+            // left unsigned, as F-Droid expects; it then compares that build with ours.
+            signingConfig = if (keystoreProperties.isNotEmpty()) signingConfigs.getByName("release") else null
         }
     }
 

@@ -1,6 +1,7 @@
 package com.asnidev.sysreadoutmonitor
 
 import android.app.Application
+import android.os.Process
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -13,6 +14,8 @@ import com.asnidev.sysreadoutmonitor.log.Access
 import com.asnidev.sysreadoutmonitor.monitor.DnsLog
 import com.asnidev.sysreadoutmonitor.monitor.DnsVpnService
 import com.asnidev.sysreadoutmonitor.monitor.ShizukuBridge
+import com.asnidev.sysreadoutmonitor.monitor.ShizukuSetup
+import com.asnidev.sysreadoutmonitor.monitor.userOf
 import com.asnidev.sysreadoutmonitor.page.Conf
 import com.asnidev.sysreadoutmonitor.page.ConfAction
 import com.asnidev.sysreadoutmonitor.page.Coordinator
@@ -114,6 +117,13 @@ class MonitorViewModel(app: Application) : AndroidViewModel(app) {
             is ConfAction.License -> {
                 val open = env.openLicences
                 env.openLicences = if (action.name in open) open - action.name else open + action.name
+                coordinator.poke()
+            }
+            ConfAction.ShizukuGrants -> viewModelScope.launch {
+                val app = getApplication<Application>()
+                val user = userOf(Process.myUid())
+                if (env.missing(Access.USAGE) != null) ShizukuSetup.usage(shizuku, app.packageName, user)
+                if (env.missing(Access.NOTIFICATIONS) != null) ShizukuSetup.notifications(shizuku, app.packageName, user)
                 coordinator.poke()
             }
             ConfAction.TextSize -> {

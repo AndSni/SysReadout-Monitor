@@ -103,6 +103,14 @@ signal *very strong*/*strong* green, *medium* yellow, *weak*/*very weak*/*no sig
 
 ## Lessons from the launcher (don't relearn these)
 
+- **The launcher keeps changing in parallel.** Before each release, run
+  `git -C /home/asni/SysReadout log` and port fixes to the shared data layer (`log/`, `monitor/`,
+  settings store, build config). 0.1.0 missed its work-profile fix and showed errors on the power
+  and net pages of the user's phone; 0.1.1 ported it (from launcher commits a6bfa05, 236c187).
+- **Work profile:** the user's phone has one (user 10). Its apps' uids (1010123) appear in
+  batterystats, `/proc/net` and wake locks; `getPackagesForUid` on another user's uid throws a
+  SecurityException. `Labels.uidLabel` names them through the same app id and marks `[w]`.
+
 - **What a normal app can read:** `/proc/meminfo`, `/proc/cpuinfo`, `/proc/self/*`,
   `/sys/devices/system/cpu/*` (current frequencies, governor), `getprop` output. **Not readable:**
   `/proc/loadavg`, `/proc/stat`, `/proc/net/*`, thermal zones, other apps' `/proc/<pid>`. The shell

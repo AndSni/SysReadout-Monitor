@@ -16,7 +16,5 @@ keystore.properties
 .DS_Store
 *.swp
 
-# --- Claude Code ---
-.claude/settings.local.json
-.claude/worktrees/
-.claude/local.md
+# --- Claude Code (local tooling, not part of the app) ---
+.claude/

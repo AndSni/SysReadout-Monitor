@@ -5,6 +5,8 @@
     <!-- Connection type, IP, Wi-Fi signal. Install-time, no prompt. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!-- Scan page and "aps" row: ask for a fresh Wi-Fi scan (Android still throttles them). -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <!-- Real app names for processes, connections, traffic and app counts. -->
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"

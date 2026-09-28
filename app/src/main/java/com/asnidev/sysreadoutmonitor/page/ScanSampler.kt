@@ -28,7 +28,6 @@ import com.asnidev.sysreadoutmonitor.term.Thresholds
 import com.asnidev.sysreadoutmonitor.term.Tone
 import com.asnidev.sysreadoutmonitor.term.cell
 import com.asnidev.sysreadoutmonitor.term.comment
-import com.asnidev.sysreadoutmonitor.term.link
 import com.asnidev.sysreadoutmonitor.term.needs
 import com.asnidev.sysreadoutmonitor.term.row
 import com.asnidev.sysreadoutmonitor.term.table
@@ -82,8 +81,11 @@ class ScanSampler(private val env: Env) : PageSampler {
 
     override suspend fun sample(): List<Line> {
         val out = ArrayList<Line>()
+        // Bluetooth first: it also works out the tracked device, which goes on top.
+        val bt = bluetooth()
+        out += trackedLines
         out += wifi()
-        out += bluetooth()
+        out += bt
         return out
     }
 
@@ -127,15 +129,14 @@ class ScanSampler(private val env: Env) : PageSampler {
             "wi-fi · ${plural(ssids, "network")}, ${plural(results.size, "access point")}" +
                 (newest?.let { " · scanned ${age(it)} ago" } ?: " · scanning…"),
         )
-        out += Line(listOf(Span("# android allows 4 scans in 2 minutes, so the list updates about every 30 s; the network in use (*) updates live. ±dB is how much a signal wanders, SEEN how many recent scans found it.", Tone.DIM)), indent = 2)
         if (results.isEmpty()) return out + note("nothing found yet")
 
         val rows = results.map { r ->
             val live = if (r.BSSID == inUse) info?.rssi?.takeIf { it > -127 } else null
             r to (live ?: r.level)
         }.sortedByDescending { it.second }
-        out += table(
-            listOf(Col(" "), Col("dBm", right = true), Col("%", right = true), Col("±dB", right = true), Col("SEEN", right = true), Col("SIGNAL"), Col("BAND"), Col("CH", right = true), Col("SSID")),
+        out += namedTable(
+            listOf(Col(" "), Col("dBm", right = true), Col("%", right = true), Col("±dB", right = true), Col("SEEN", right = true), Col("BAND"), Col("CH", right = true), Col("SIGNAL")),
             rows.map { (r, dbm) ->
                 val history = scans.mapNotNull { it[r.BSSID] }
                 val pct = Signal.percent(dbm)
@@ -146,13 +147,13 @@ class ScanSampler(private val env: Env) : PageSampler {
                     cell(pct.toString(), tone),
                     cell(Signal.spread(history)?.let { String.format(Locale.US, "%.1f", it) } ?: "-", Tone.DIM),
                     cell(if (scans.isEmpty()) "-" else "${history.size}/${scans.size}", Tone.DIM),
-                    cell(Signal.bars(pct, 8), tone),
                     cell(band(r.frequency)),
                     cell(ProbeReader.channel(r.frequency).toString()),
-                    ssid(r)?.let { cell(it) } ?: cell("(hidden)", Tone.DIM),
-                )
+                    cell(Signal.bars(pct, 8), tone),
+                ) to listOf(ssid(r)?.let { Span(it) } ?: Span("(hidden)", Tone.DIM))
             },
         )
+        out += Line(listOf(Span("# * in use (live) · ±dB how much it wanders · SEEN in recent scans · android allows a scan every 30 s", Tone.DIM)), indent = 2)
         return out
     }
 
@@ -179,6 +180,7 @@ class ScanSampler(private val env: Env) : PageSampler {
     // --- Bluetooth ---
 
     private fun bluetooth(): List<Line> {
+        trackedLines = emptyList()
         val out = ArrayList<Line>()
         out += Line.BLANK
         if (!ble.present) return out + comment("bluetooth") + note("this phone has no bluetooth")
@@ -205,16 +207,16 @@ class ScanSampler(private val env: Env) : PageSampler {
                 " · ${devices.size} in range · tap a name to track it",
         )
 
-        env.tracked?.let { address ->
+        trackedLines = env.tracked?.let { address ->
             val d = devices[address]
             val name = d?.name ?: paired.firstOrNull { it.first.address == address }?.let { ble.name(it.first) } ?: address
-            out += tracked(name, address, d, now)
-        }
+            tracked(name, address, d, now) + Line.BLANK
+        }.orEmpty()
 
         if (paired.isNotEmpty()) {
             out += comment("paired")
-            out += table(
-                listOf(Col("dBm", right = true), Col("%", right = true), Col(" "), Col("SIGNAL"), Col("NAME")),
+            out += namedTable(
+                BT_COLS,
                 paired.sortedByDescending { devices[it.first.address]?.smooth ?: -999.0 }.map { (device, connected) ->
                     val d = devices[device.address]
                     val name = ble.name(device) ?: device.address
@@ -223,8 +225,7 @@ class ScanSampler(private val env: Env) : PageSampler {
                             cell("-", Tone.DIM), cell("-", Tone.DIM), cell(" "),
                             // Connected devices often stop advertising: tracking reads them over the link.
                             cell(if (connected) "linked" else "unseen", Tone.DIM),
-                            link(name, Tap.Track(device.address)),
-                        )
+                        ) to listOf(Span(name, Tone.LINK, Tap.Track(device.address)))
                     } else deviceRow(d, name)
                 },
             )
@@ -237,10 +238,7 @@ class ScanSampler(private val env: Env) : PageSampler {
         if (others.isEmpty()) {
             out += note(if (ble.scanning) "nothing heard yet" else "not scanning")
         } else {
-            out += table(
-                listOf(Col("dBm", right = true), Col("%", right = true), Col(" "), Col("SIGNAL"), Col("NAME")),
-                (named + unnamed.take(UNNAMED_SHOWN)).map { deviceRow(it, it.name ?: "(no name) ${it.address.takeLast(8)}") },
-            )
+            out += namedTable(BT_COLS, (named + unnamed.take(UNNAMED_SHOWN)).map { deviceRow(it, it.name ?: "(no name) ${it.address.takeLast(8)}") })
             if (unnamed.size > UNNAMED_SHOWN) out += note("and ${unnamed.size - UNNAMED_SHOWN} more without a name")
         }
         // Remember what was shown, for the next sample's arrows.
@@ -248,7 +246,7 @@ class ScanSampler(private val env: Env) : PageSampler {
         return out
     }
 
-    private fun deviceRow(d: BleWatch.Device, name: String): List<Cell> {
+    private fun deviceRow(d: BleWatch.Device, name: String): Pair<List<Cell>, List<Span>> {
         val dbm = d.smooth.roundToInt()
         val pct = Signal.percent(dbm)
         val tone = Thresholds.dbm(dbm)
@@ -258,8 +256,18 @@ class ScanSampler(private val env: Env) : PageSampler {
             cell(pct.toString(), tone),
             cell(arrow, arrowTone),
             cell(Signal.bars(pct, 8), tone),
-            link(name, Tap.Track(d.address)),
-        )
+        ) to listOf(Span(name, Tone.LINK, Tap.Track(d.address)))
+    }
+
+    /**
+     * The numbers in aligned columns, each row followed by its name on a line of its
+     * own, indented: a long SSID or device name can't push the columns apart.
+     */
+    private fun namedTable(cols: List<Col>, rows: List<Pair<List<Cell>, List<Span>>>): List<Line> {
+        val lines = table(cols, rows.map { it.first })
+        return listOf(lines.first()) + rows.indices.flatMap { i ->
+            listOf(lines[i + 1], Line(listOf(Span("    ")) + rows[i].second, indent = 4))
+        }
     }
 
     /** ↑ stronger (closer), ↓ weaker, = about the same, since the last sample. */
@@ -301,7 +309,11 @@ class ScanSampler(private val env: Env) : PageSampler {
         return out
     }
 
+    /** The tracked device's lines, worked out with the Bluetooth list and shown at the top. */
+    private var trackedLines: List<Line> = emptyList()
+
     private companion object {
+        val BT_COLS = listOf(Col("dBm", right = true), Col("%", right = true), Col(" "), Col("SIGNAL"))
         const val WIFI_SCAN_MS = 30_000L
         const val HISTORY = 10
         const val GONE_MS = 30_000L

@@ -5,10 +5,10 @@ interface IShellService {
     // Transaction code reserved by Shizuku for tearing the service down.
     void destroy() = 16777114;
 
-    // stdout+stderr of `sh -c command`, cut off after timeoutMs.
+    // stdout+stderr of `sh -c command`; null when it couldn't run or took longer than timeoutMs.
     String exec(String command, long timeoutMs) = 1;
 
-    // Contents of a file readable by the shell user; empty if unreadable.
+    // Contents of a file readable by the shell user; null if unreadable.
     String readFile(String path) = 2;
 
     // Newline-separated IPs in, "ip<TAB>hostname" lines out (reverse DNS; unresolved IPs omitted).
@@ -22,4 +22,7 @@ interface IShellService {
 
     // ^C for command [id], whose process group is [pid].
     void interrupt(int id, int pid) = 6;
+
+    // ShellProtocol.VERSION of the running helper; an older helper answers 0.
+    int protocol() = 7;
 }

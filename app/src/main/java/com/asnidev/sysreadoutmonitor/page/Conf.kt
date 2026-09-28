@@ -28,6 +28,8 @@ sealed interface ConfAction {
     data class MovePage(val page: Page, val delta: Int) : ConfAction
     data class Toggle(val setting: Setting) : ConfAction
     data class License(val name: String) : ConfAction
+    /** Switch on usage and notification access through Shizuku's shell. */
+    data object ShizukuGrants : ConfAction
 }
 
 object Conf {
@@ -52,6 +54,6 @@ object Conf {
             if (from < 0 || from == to) p else p.copy(order = list.apply { add(to, removeAt(from)) }.map { it.tab })
         }
         is ConfAction.Toggle -> action.setting.set(p, !action.setting.get(p))
-        is ConfAction.License -> p
+        is ConfAction.License, ConfAction.ShizukuGrants -> p
     }
 }

@@ -66,6 +66,8 @@ class Env(val context: Context, val shizuku: ShizukuBridge, val prefs: () -> Mon
             ShizukuState.UNSUPPORTED -> "needs a newer shizuku, tap to set it up"
             ShizukuState.NO_PERMISSION -> "needs shizuku permission, tap to allow"
             ShizukuState.CONNECTING -> "connecting to shizuku…"
+            ShizukuState.FAILING -> "shizuku's helper keeps failing, tap to restart it"
+            ShizukuState.OFF -> "shizuku is off"
         }
         access.isRuntime -> if (access.runtimeGranted(context)) null else "needs ${access.tag} permission, tap to allow"
         else -> null

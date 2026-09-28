@@ -715,11 +715,18 @@ class ProbeReader(private val context: Context) {
     private fun batteryTemp(): String =
         String.format(Locale.US, "%.1f", (battery?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) ?: 0) / 10f)
 
-    /** Most devices report µA, a few mA; the sign convention also varies by vendor. */
+    private var currentInMicroamps = false
+
+    /**
+     * Most devices report µA, a few mA; the sign convention also varies by vendor.
+     * No phone draws 20 A, so a reading above 20 000 settles it as µA for good:
+     * after that a small current (say 12 000 µA near a full charge) isn't misread as 12 A.
+     */
     private fun currentMa(): Int {
         val raw = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)
         if (raw == Int.MIN_VALUE) return 0
-        return if (abs(raw) > 20_000) raw / 1000 else raw
+        if (abs(raw) > 20_000) currentInMicroamps = true
+        return if (currentInMicroamps) raw / 1000 else raw
     }
 
     private fun readMeminfo(): Map<String, Long> =
