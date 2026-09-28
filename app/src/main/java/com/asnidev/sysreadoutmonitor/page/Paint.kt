@@ -72,6 +72,10 @@ object Paint {
         "swap" to listOf(percent(after = "$", tone = Thresholds::load)),
         "fs" to listOf(percent(after = " used", tone = Thresholds::storage)),
         "sd" to listOf(percent(after = " used", tone = Thresholds::storage)),
+        "props" to listOf(
+            Rule(Regex("vbs (\\w+)"), 1) { Thresholds.verifiedBoot(it) },
+            Rule(Regex("\\bUNLOCKED\\b")) { Tone.WARN },
+        ),
         "wifi" to listOf(signal),
         "cell" to listOf(signal),
     )

@@ -283,3 +283,14 @@ Commit at the end of each milestone with the checks green.
 - Scan page (user request): each access point / device as a metrics line with its name on the next
   line; the tracked device on top of the page.
 - conf `[shizuku] 4_access`: one tap grants usage and notification access through Shizuku.
+
+## 12. 0.1.2 (2026-09-28)
+
+- sys page in sections (device, android, kernel and firmware, runtime and apps, time) with the
+  software detail the user asked for: build number/type/keys, incremental, build date,
+  fingerprint, security + vendor patch with age (`Thresholds.patchAge`: warn > 90 days, crit >
+  180), Play system update (module metadata), shipped-with Android, VNDK, min target SDK,
+  encryption/verified boot/verity/SELinux (Shizuku `getenforce`) coloured, time zone + tzdata +
+  locale, kernel build from `/proc/version` (Android 14 denies it to apps; read through Shizuku),
+  bootloader, baseband, WebView/Play services/Play Store versions, ART, SDK extensions, ABIs and
+  page size. Helpers in `page/Software.kt`, tested.

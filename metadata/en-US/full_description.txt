@@ -3,7 +3,7 @@ SysReadout Monitor shows everything your Android phone will tell you about itsel
 It works only while you look at it, and only for the page on screen, so it costs almost nothing the rest of the time.
 
 The pages:
-* sys (fastfetch): device, Android version and patch, kernel, build properties, chipset, GPU, display, uptime, boot count, app counts.
+* sys (fastfetch): device, chipset, GPU and display; the Android build, fingerprint, security patch and how old it is, Play system update, encryption, verified boot and SELinux; how the kernel was built, bootloader and baseband; WebView and Play services versions; uptime.
 * cpu (top): a meter per core, clocks, load, thermal status, every temperature sensor, the busiest processes.
 * mem (free -h): RAM and swap meters, memory detail, processes by memory.
 * power (upower -d): everything the battery reports: meter, voltage, current, watts, charger, cycles, capacity; with Shizuku, drain since the last charge with the screen on and off, doze, time left, use by part of the phone and by app, wake locks.

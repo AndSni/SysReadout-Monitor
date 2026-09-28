@@ -4,7 +4,7 @@ name: release
 # Release tagged `latest`. APKs are never committed: F-Droid builds from
 # tagged source and doesn't accept binaries in a repo's history.
 #
-# Signing secrets (without them the APK is debug-signed but still installs):
+# Signing secrets (without them the APK is left unsigned and won't install):
 #   RELEASE_KEYSTORE_B64      base64 of the .jks
 #   RELEASE_KEYSTORE_PASSWORD store password
 #   RELEASE_KEY_ALIAS         key alias
@@ -58,7 +58,7 @@ jobs:
             } > keystore.properties
             echo "Release signing configured."
           else
-            echo "No RELEASE_KEYSTORE_B64 secret — APK will be debug-signed."
+            echo "No RELEASE_KEYSTORE_B64 secret — APK will be unsigned."
           fi
 
       - name: Assemble release

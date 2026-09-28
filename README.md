@@ -22,7 +22,7 @@ which shows the same data on the home screen.
 
 | Tab | What it shows |
 |---|---|
-| `sys` | device, Android and patch level, kernel, build properties, chipset, GPU, display, uptime, app counts |
+| `sys` | device, chipset, GPU, display; Android build, fingerprint, security patch and its age, Play system update, encryption, verified boot, SELinux; kernel build, bootloader, baseband; WebView and Play services versions; uptime |
 | `cpu` | per-core meters, load, thermal status, every temperature sensor, busiest processes |
 | `mem` | RAM and swap meters, memory detail, processes by memory |
 | `power` | battery meter, voltage, current, watts, charger, cycles, capacity; with Shizuku drain since the last charge (screen on/off, doze), time left, use by part and by app, wake locks |

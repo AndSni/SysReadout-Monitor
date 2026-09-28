@@ -53,6 +53,12 @@ class PaintTest {
     }
 
     @Test
+    fun buildProperties() {
+        assertEquals(mapOf("green" to Tone.GOOD), coloured("props", "slot a · vbs green · locked · treble · first api 31 · user"))
+        assertEquals(mapOf("orange" to Tone.CRIT, "UNLOCKED" to Tone.WARN), coloured("props", "vbs orange · UNLOCKED · user"))
+    }
+
+    @Test
     fun storage() {
         assertEquals(emptyMap<String, Tone>(), coloured("fs", "41.2G/110.0G free  62% used"))
         assertEquals(mapOf("90%" to Tone.WARN), coloured("fs", "11.0G/110.0G free  90% used"))

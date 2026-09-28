@@ -12,6 +12,8 @@ object Thresholds {
     const val BATTERY_CRIT = 15
     const val TEMP_WARN = 45.0
     const val TEMP_CRIT = 55.0
+    const val PATCH_WARN_DAYS = 90
+    const val PATCH_CRIT_DAYS = 180
     const val STORAGE_WARN = 85.0
     const val STORAGE_CRIT = 95.0
 
@@ -59,6 +61,21 @@ object Thresholds {
 
     /** A radio signal in dBm: the same cut-offs as the words (strong and better, medium, weak). */
     fun dbm(dbm: Int): Tone = signal(Signal.words(dbm))
+
+    /** Security patch age in days: fine for three months, a warning up to six, critical after. */
+    fun patchAge(days: Long): Tone = when {
+        days > PATCH_CRIT_DAYS -> Tone.CRIT
+        days > PATCH_WARN_DAYS -> Tone.WARN
+        else -> Tone.GOOD
+    }
+
+    /** Verified boot state: green is a locked, verified OS; yellow a custom key; orange unlocked; red failed. */
+    fun verifiedBoot(state: String): Tone = when (state.lowercase()) {
+        "green" -> Tone.GOOD
+        "yellow" -> Tone.WARN
+        "orange", "red" -> Tone.CRIT
+        else -> Tone.FG
+    }
 
     /** The low-memory flag is always critical. */
     val lowMemory = Tone.CRIT

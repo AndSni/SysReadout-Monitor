@@ -5,7 +5,7 @@ name: release-tag
 # check (Binaries + AllowedAPKSigningKeys in .fdroid.yml) diffs its own
 # from-source build against this file, so it must never be overwritten.
 #
-# Signing secrets: see release.yml. Without them the APK is debug-signed and
+# Signing secrets: see release.yml. Without them the APK is unsigned and
 # won't match AllowedAPKSigningKeys.
 
 on:
@@ -14,14 +14,39 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing tag to (re-)publish a release for"
+        description: "Existing tag to publish a release for (skipped if that release exists)"
         required: true
 
 permissions:
   contents: write
 
+# GitHub now and then delivers one tag push twice. Runs for the same tag go one
+# at a time, and the later one finds the release and stops without failing.
+concurrency:
+  group: release-tag-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      exists: ${{ steps.check.outputs.exists }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; it is never rebuilt or replaced (F-Droid compares against it)."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
   release-tag:
+    needs: check
+    if: needs.check.outputs.exists != 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -56,7 +81,7 @@ jobs:
             } > keystore.properties
             echo "Release signing configured."
           else
-            echo "No RELEASE_KEYSTORE_B64 secret — APK will be debug-signed."
+            echo "No RELEASE_KEYSTORE_B64 secret — APK will be unsigned."
           fi
 
       - name: Assemble release
