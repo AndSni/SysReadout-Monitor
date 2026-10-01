@@ -40,7 +40,8 @@ Long-press any line to copy it, pinch to zoom. Everything is explained in the
 
 ## Install
 
-- **F-Droid:** submission in preparation.
+- **F-Droid:** submitted, waiting for review
+  ([fdroiddata!50817](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50817)).
 - **GitHub:** download `SysReadout-Monitor.apk` from the
   [latest release](https://github.com/AndSni/SysReadout-Monitor/releases/latest) and open it
   (allow "install unknown apps").
