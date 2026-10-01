@@ -208,6 +208,14 @@ object Parsers {
         LogLine(m.groupValues[1].toDouble(), m.groupValues[2][0], m.groupValues[3], m.groupValues[4])
     }.toList()
 
+    private val STACK_LINE = Regex("^\\s*(at |Caused by: |Suppressed: |\\.\\.\\. \\d+ more)")
+
+    /**
+     * A continuation line of a Java stack trace ("at …", "Caused by: …", "... 12 more"),
+     * which logcat prints as separate lines: part of the error above it, not an error itself.
+     */
+    fun isStackTraceLine(message: String): Boolean = STACK_LINE.containsMatchIn(message)
+
     /** Per-core counters, indexed by core number. */
     fun cpuTicks(stat: String): Map<Int, CoreTicks> = stat.lineSequence().mapNotNull { line ->
         if (!line.startsWith("cpu") || line.startsWith("cpu ")) return@mapNotNull null

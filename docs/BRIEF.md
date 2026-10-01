@@ -294,3 +294,30 @@ Commit at the end of each milestone with the checks green.
   locale, kernel build from `/proc/version` (Android 14 denies it to apps; read through Shizuku),
   bootloader, baseband, WebView/Play services/Play Store versions, ART, SDK extensions, ABIs and
   page size. Helpers in `page/Software.kt`, tested.
+
+## 13. 0.1.3 (2026-10-01)
+
+Brought in line with SysReadout Launcher 0.2.3 and its F-Droid review (MR !50444):
+
+- Icon: the launcher's "6f" CRT tube (four bowed edge arcs, tangent corners, aspect 1.25) with
+  "SM" drawn from VT323's glyphs, in Breeze intense blue `#3DAEE9` on `#232627`. "SM" over
+  "SRm": two glyphs at the launcher's size and place, and a lowercase m is mush at 48 px.
+  Checked against 4,097 F-Droid and ~600 Play icons (closest 0.37 F-Droid, 0.42 Play; nothing
+  under 0.30). Monochrome uses the same drawable.
+- No EmojiCompat: `InitializationProvider` merge with `EmojiCompatInitializer` removed. On a
+  fresh API 37 AVD, 0.1.2 made Play services fetch "Noto Color Emoji Compat" (3.0 MB on our
+  uid); 0.1.3 makes no font query and no traffic.
+- DNS monitor: no 9.9.9.9 / 1.1.1.1 fallback; only the network's own servers.
+- R8 (`-dontobfuscate`, keep rule for `ShellService`'s constructor, which Shizuku calls by
+  reflection), shrinkResources: release APK 7.6 → 1.7 MB.
+- Ported launcher fixes: NotifListener survives an unreadable extras bundle; a missing VPN
+  consent screen doesn't crash; logcat stack-trace continuation lines dropped, a repeated error
+  shown at most once a minute (`Parsers.isStackTraceLine`, tested). Shizuku API credited as MIT.
+- Found in testing: a display-size change (handled in-process, `configChanges` density) left the
+  column count stale, so lines ran off the right edge; `charWidth` is now keyed on the measurer.
+- Tested on throwaway AVDs (API 37 and 34, deleted afterwards): fresh install with no traffic,
+  process death, landscape, font 1.3 + density 560/300, forced RTL, 2 × 15k monkey events
+  (0 crashes, 0 ANRs; one Pixel Launcher crash outside the app), 0 CPU ticks hidden; R8 release
+  with Shizuku (helper starts as shell, exec/readFile), and an R8-minified debug build through
+  every page, the shell tab (`id` as uid 2000, ^C) and reverse DNS. New screenshots from the
+  API 34 one (demo-mode status bar, device name "Pixel 7").

@@ -1,14 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- ">" prompt and a block cursor, drawn inside the 66dp adaptive-icon safe zone. -->
+<!-- A CRT picture tube with "SM" on its screen: the SysReadout Launcher's icon in
+     Konsole's Breeze blue. The outline is four gently bowed edge arcs joined by corner
+     arcs tangent to both; the letters are drawn from VT323's glyphs (SIL OFL 1.1).
+     Drawn inside the 66dp adaptive-icon safe zone. The glyph paths are long, but a
+     launcher icon is drawn once and cached, so lint's VectorPath warning doesn't apply. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
-    android:viewportHeight="108">
+    android:viewportHeight="108"
+    tools:ignore="VectorPath">
+    <path
+        android:pathData="M32.37,32.25A135.7,135.7 0 0 1 75.63,32.25A7.68,7.68 0 0 1 81.94,38.37A81.86,81.86 0 0 1 81.94,69.63A7.68,7.68 0 0 1 75.63,75.75A135.7,135.7 0 0 1 32.37,75.75A7.68,7.68 0 0 1 26.06,69.63A81.86,81.86 0 0 1 26.06,38.37A7.68,7.68 0 0 1 32.37,32.25Z"
+        android:strokeColor="@color/icon_fg"
+        android:strokeWidth="3.4" />
     <path
         android:fillColor="@color/icon_fg"
-        android:pathData="M34,38 L37.5,34.5 L55,52 L37.5,69.5 L34,66 L48,52 Z" />
+        android:pathData="M52.4,57.6q0,1-0.2,1.8q0.2,0.7 0.2,1.7q0,1.1-0.2,1.8h-1.8q0.2,0.7 0.2,1.8q0,1-0.2,1.8h-10.7q-0.2-0.8-0.2-1.8q0-1.1 0.2-1.8h-1.8q-0.1-0.7-0.1-1.8q0-1 0.1-1.7h3.6q0.2,0.7 0.2,1.7q0,1.1-0.2,1.8h7.1q-0.1-0.7-0.1-1.8q0-1 0.1-1.7q-0.1-0.8-0.1-1.8q0-1.1 0.1-1.8h-8.9q-0.2-0.8-0.2-1.8q0-1.1 0.2-1.8h-1.8q-0.1-0.7-0.1-1.8q0-1 0.1-1.8q-0.1-0.7-0.1-1.7q0-1.1 0.1-1.8h1.8q-0.2-0.8-0.2-1.8q0-1.1 0.2-1.8h10.7q0.2,0.7 0.2,1.8q0,1-0.2,1.8h1.8q0.2,0.7 0.2,1.8q0,1-0.2,1.7h-3.6q-0.1-0.7-0.1-1.7q0-1.1 0.1-1.8h-7.1q0.2,0.7 0.2,1.8q0,1-0.2,1.7q0.2,0.8 0.2,1.8q0,1.1-0.2,1.8h8.9q0.2,0.7 0.2,1.8q0,1-0.2,1.8h1.8q0.2,0.7 0.2,1.8z" />
     <path
         android:fillColor="@color/icon_fg"
-        android:pathData="M58,40 L72,40 L72,68 L58,68 Z" />
+        android:pathData="M70.2,46.9q0,1-0.1,1.7q0.1,0.8 0.1,1.8q0,1.1-0.1,1.8q0.1,0.7 0.1,1.8q0,1-0.1,1.8q0.1,0.7 0.1,1.8q0,1-0.1,1.8q0.1,0.7 0.1,1.7q0,1.1-0.1,1.8q0.1,0.7 0.1,1.8q0,1-0.1,1.8h-3.6q-0.2-0.8-0.2-1.8q0-1.1 0.2-1.8q-0.2-0.7-0.2-1.8q0-1 0.2-1.7q-0.2-0.8-0.2-1.8q0-1.1 0.2-1.8q-0.2-0.8-0.2-1.8q0-1.1 0.2-1.8q-0.2-0.7-0.2-1.8q0-1 0.2-1.8h-1.3q0.1,0.8 0.1,1.8q0,1.1-0.1,1.8q0.1,0.7 0.1,1.8q0,1-0.1,1.8h-0.9q0.2,0.7 0.2,1.8q0,1-0.2,1.8q0.2,0.7 0.2,1.7q0,1.1-0.2,1.8h-2.7q-0.2-0.7-0.2-1.8q0-1 0.2-1.7q-0.2-0.8-0.2-1.8q0-1.1 0.2-1.8h-0.9q-0.2-0.8-0.2-1.8q0-1.1 0.2-1.8q-0.2-0.7-0.2-1.8q0-1 0.2-1.8h-1.3q0.1,0.8 0.1,1.8q0,1.1-0.1,1.8q0.1,0.7 0.1,1.8q0,1-0.1,1.8q0.1,0.7 0.1,1.8q0,1-0.1,1.8q0.1,0.7 0.1,1.7q0,1.1-0.1,1.8q0.1,0.7 0.1,1.8q0,1-0.1,1.8h-3.6q-0.2-0.8-0.2-1.8q0-1.1 0.2-1.8q-0.2-0.7-0.2-1.8q0-1 0.2-1.7q-0.2-0.8-0.2-1.8q0-1.1 0.2-1.8q-0.2-0.8-0.2-1.8q0-1.1 0.2-1.8q-0.2-0.7-0.2-1.8q0-1 0.2-1.8q-0.2-0.7-0.2-1.7q0-1.1 0.2-1.8q-0.2-0.8-0.2-1.8q0-1.1 0.2-1.8h4.4q0.2,0.7 0.2,1.8q0,1-0.2,1.8h1.4q0.2,0.7 0.2,1.8q0,1-0.2,1.7h0.7q0.1,0.8 0.1,1.8q0,1.1-0.1,1.8h1.3q-0.2-0.7-0.2-1.8q0-1 0.2-1.8h0.7q-0.2-0.7-0.2-1.7q0-1.1 0.2-1.8h1.3q-0.2-0.8-0.2-1.8q0-1.1 0.2-1.8h4.5q0.1,0.7 0.1,1.8q0,1-0.1,1.8q0.1,0.7 0.1,1.8z" />
 </vector>

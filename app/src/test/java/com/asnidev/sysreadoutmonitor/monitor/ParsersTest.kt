@@ -1,6 +1,7 @@
 package com.asnidev.sysreadoutmonitor.monitor
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -127,6 +128,22 @@ class ShellParsersTest {
         assertEquals(LogLine(1790263597.345, 'E', "ActivityManager", "ANR in com.example.app"), lines[0])
         assertEquals("logd", lines[1].tag)
         assertEquals("something: with a colon", lines[1].message)
+    }
+
+    @Test
+    fun stackTraceContinuationLines() {
+        listOf(
+            "\tat com.google.android.apps.gsa.shared.util.c.a.b(PG:21)",
+            "at java.util.concurrent.FutureTask.run(FutureTask.java:264)",
+            "Caused by: java.io.IOException: timeout",
+            "Suppressed: java.lang.IllegalStateException",
+            "... 12 more",
+        ).forEach { assertTrue(it, Parsers.isStackTraceLine(it)) }
+        listOf(
+            "ANR in com.example.app",
+            "WM sent Transaction to organized, but never received commit callback",
+            "Fatal error at startup",
+        ).forEach { assertFalse(it, Parsers.isStackTraceLine(it)) }
     }
 
     @Test

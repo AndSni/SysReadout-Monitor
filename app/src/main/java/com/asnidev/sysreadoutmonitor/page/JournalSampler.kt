@@ -41,6 +41,8 @@ class JournalSampler(private val env: Env) : PageSampler {
     private val dnsEmitted = HashMap<String, Long>()
     private var notifSeen = 0L
     private var logcatLast: Double? = null
+    /** Last time each logcat error was shown, to hold back repeats. */
+    private val logcatShown = HashMap<String, Long>()
     private var lastApps: Map<Int, Proc>? = null
     private var lastConns: Set<Pair<Int, String>>? = null
     private val shellCadence = Cadence { env.shellMs() }
@@ -192,10 +194,18 @@ class JournalSampler(private val env: Env) : PageSampler {
             "logcat -d -v epoch -T ${String.format(Locale.US, "%.3f", since)} '*:$level' | tail -n 100"
         }
         val lines = Parsers.logcat(env.shizuku.exec(command) ?: return)
-        lines.filter { since == null || it.time > since }.forEach {
-            val tone = if (it.level == 'W') Tone.WARN else Tone.CRIT
-            emit("log${it.level}", tone, "${it.tag}: ${it.message}", (it.time * 1000).toLong())
-        }
+        lines.filter { since == null || it.time > since }
+            .filterNot { Parsers.isStackTraceLine(it.message) } // one line per error, not its stack trace
+            .forEach {
+                val text = "${it.tag}: ${it.message}"
+                val time = (it.time * 1000).toLong()
+                // An app stuck repeating the same error shows once a minute, not on every line.
+                val last = logcatShown[text]
+                if (last != null && time - last < LOGCAT_REPEAT_MS) return@forEach
+                logcatShown[text] = time
+                emit("log${it.level}", if (it.level == 'W') Tone.WARN else Tone.CRIT, text, time)
+            }
+        if (logcatShown.size > 500) logcatShown.entries.removeAll { System.currentTimeMillis() - it.value > LOGCAT_REPEAT_MS }
         logcatLast = lines.maxOfOrNull { it.time } ?: since ?: (System.currentTimeMillis() / 1000.0)
     }
 
@@ -245,5 +255,6 @@ class JournalSampler(private val env: Env) : PageSampler {
         const val MAX = 500
         const val KEY = 6
         const val DNS_REPEAT_MS = 5 * 60_000L
+        const val LOGCAT_REPEAT_MS = 60_000L
     }
 }

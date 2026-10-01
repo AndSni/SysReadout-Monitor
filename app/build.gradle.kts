@@ -23,8 +23,8 @@ android {
         applicationId = "com.sysreadoutmonitor.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.1.2"
+        versionCode = 4
+        versionName = "0.1.3"
     }
 
     signingConfigs {
@@ -40,7 +40,9 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             // No META-INF/version-control-info.textproto: it records how the source was checked
             // out (commit, or an error in a worktree or tarball), which F-Droid's build would have
             // to reproduce byte for byte.

@@ -26,7 +26,9 @@ class NotifListener : NotificationListenerService() {
         val n = sbn.notification
         // Ongoing ones (music, downloads, navigation) and group summaries aren't new messages.
         if (sbn.isOngoing || n.flags and Notification.FLAG_GROUP_SUMMARY != 0 || sbn.packageName == packageName) return
-        val title = n.extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString()
+        // Reading extras unpacks the other app's bundle, which throws when it holds a class
+        // only that app has; this runs in SR Monitor's process, so it must not crash.
+        val title = runCatching { n.extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString() }.getOrNull()
         NotifLog.posted(sbn.key, sbn.postTime, sbn.packageName, n.category, title)
     }
 

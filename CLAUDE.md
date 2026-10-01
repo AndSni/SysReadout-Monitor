@@ -150,6 +150,13 @@ signal *very strong*/*strong* green, *medium* yellow, *weak*/*very weak*/*no sig
   tapping (the launcher had `--es preview <preset>`, `--es rows a,b,c`, `--es layout feed`,
   `--es screen settings`, `--ez snapshot true`). Do the same here, e.g. `--es page cpu`, and gate it
   on `BuildConfig.DEBUG`.
+- **Display size changes don't restart the activity** (`configChanges` includes `density`): anything
+  measured in pixels must be remembered with the text measurer or density as a key. Test with
+  `adb shell wm density 560` / `300` while the app is open, then `wm density reset`.
+- **Test on throwaway AVDs** (`avdmanager create avd -n srm_tNN -k "system-images;android-37.0;google_apis;x86_64" -d pixel_7`,
+  deleted afterwards) when a fresh device is needed; never wipe the shared ones. Shizuku access can be
+  granted with `pm grant <pkg> moe.shizuku.manager.permission.API_V23` + a server restart on API 34,
+  not on API 37.
 - **Measure battery cost** the way the launcher was measured:
   `adb shell top -b -n 5 -d 2 -p <pid> -o PID,%CPU,RES,NAME -q` with the app visible and with
   another app in front.
@@ -185,3 +192,19 @@ Rules that were learned the hard way:
 - Public repos are committed as `AndSni <snukzz@gmail.com>`: set it in this repo's local git config.
 - Before opening any merge request on a project the user doesn't own (F-Droid's fdroiddata), read
   its MR template first and fill it in exactly.
+- **No network at first start.** Compose pulls in EmojiCompat, which has Play services download a
+  ~3 MB emoji font for us; the manifest removes `EmojiCompatInitializer`. Prove it on a fresh AVD:
+  no `FontLog.*Received query` in logcat, no row for our uid in `dumpsys netstats detail`'s
+  `mAppUidStatsMap`. The DNS monitor has no public fallback resolver; keep it that way.
+- **R8 is on** (`-dontobfuscate`). `proguard-rules.pro` keeps `ShellService`'s constructor, which
+  Shizuku calls by reflection. After touching Shizuku code, test a minified build with Shizuku
+  connected (a debug build with `isMinifyEnabled = true`, temporarily, gives the page extras).
+- **Reproducibility:** compare a **clean** build (`./gradlew clean assembleRelease` or a fresh
+  clone): incremental output once gave a different `classes.dex`. F-Droid's check:
+  `fdroidserver.apksigcopier.do_copy(signed, unsigned, out)` and compare hashes.
+- **fdroiddata's CI formatting:** `AutoName:` (the app label, `SR Monitor`) after the Changelog
+  block, no blank line between `Repo:` and `Binaries:`; long `Changelog`/`Binaries` URLs stay
+  wrapped with a trailing space. Run `fdroid readmeta`, `rewritemeta`, `checkupdates` and `lint`
+  before an MR. Fork CI shows 0 jobs: ask the maintainers in a note to trigger the pipeline.
+- Store screenshots come from the commit F-Droid builds, so new images need a new version. Take
+  them in one session on the emulator with a demo-mode status bar and a neutral device name.

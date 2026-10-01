@@ -25,6 +25,6 @@ Deeper monitoring, when you allow it. Every permission is asked for only when yo
 * Location, phone, nearby devices, Bluetooth, activity: Wi-Fi and cell details, satellites, Bluetooth signal, steps.
 * The optional DNS monitor, a local VPN that carries only DNS: which app looks up which server.
 
-No ads, no analytics, no tracking, no accounts. Nothing is sent anywhere; the only network use is the optional DNS monitor passing your apps' own lookups on to your DNS server (Quad9 or Cloudflare only if the network names none), and optional reverse-DNS lookups of connection addresses.
+No ads, no analytics, no tracking, no accounts. Nothing is sent anywhere; the only network use is the optional DNS monitor passing your apps' own lookups on to the DNS server your network names, and optional reverse-DNS lookups of connection addresses.
 
 Forked from SysReadout Launcher. Free software under the GNU GPL v3.

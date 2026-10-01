@@ -6,19 +6,21 @@ License: GPL-3.0-only
 AuthorName: AndSni
 SourceCode: https://github.com/AndSni/SysReadout-Monitor
 IssueTracker: https://github.com/AndSni/SysReadout-Monitor/issues
-Changelog: https://github.com/AndSni/SysReadout-Monitor/blob/HEAD/metadata/en-US/changelogs/%c.txt
-
-RepoType: git
-Repo: https://github.com/AndSni/SysReadout-Monitor.git
+Changelog: 
+  https://github.com/AndSni/SysReadout-Monitor/blob/HEAD/metadata/en-US/changelogs/%c.txt
 
 # Summary/Description are intentionally omitted: the fastlane-structured
 # metadata/en-US/{title,short_description,full_description}.txt in this repo is
 # the single source of truth.
+AutoName: SR Monitor
 
+RepoType: git
+Repo: https://github.com/AndSni/SysReadout-Monitor.git
 # Each version tag also publishes a GitHub Release at that tag
 # (.github/workflows/release-tag.yml) carrying the identical, developer-signed
 # APK, so F-Droid's reproducible-build check can diff its own build against it.
-Binaries: https://github.com/AndSni/SysReadout-Monitor/releases/download/v%v/SysReadout-Monitor.apk
+Binaries: 
+  https://github.com/AndSni/SysReadout-Monitor/releases/download/v%v/SysReadout-Monitor.apk
 
 Builds:
   - versionName: 0.1.2

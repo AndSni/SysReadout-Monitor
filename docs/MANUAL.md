@@ -170,9 +170,9 @@ doubling up to 5 minutes) and says so; tap the line to try again at once.
 
 Shows which app looks up which server name (`imap.gmail.com`, not just an IP), on the net page and
 in the journal. It's a local VPN that routes only DNS: each lookup is noted and passed on unchanged
-to your network's DNS server; only if the network names no DNS server at all does it fall back to
-Quad9 (9.9.9.9) and Cloudflare (1.1.1.1). Nothing else goes through it and nothing is sent
-anywhere else.
+to your network's DNS server. With no DNS server (offline), lookups go unanswered as they would
+without the monitor: there is no public fallback. Nothing else goes through it and nothing is
+sent anywhere else.
 Switch it on in `conf › dns_monitor`; Android asks once whether to allow the VPN.
 
 - Android allows one VPN at a time, so it can't run next to another VPN.
@@ -209,6 +209,5 @@ on, are the only things that keep working in the background; both only react to 
 
 No ads, no analytics, no tracking, no accounts. Everything is read on the phone and kept in memory
 while the app runs; only your settings are stored. Nothing is sent anywhere. The only network use
-is the optional DNS monitor passing your apps' own lookups on to your DNS server (Quad9 or
-Cloudflare only if the network names none), and optional reverse-DNS lookups of connection
-addresses, made by Shizuku's helper.
+is the optional DNS monitor passing your apps' own lookups on to the DNS server your network
+names, and optional reverse-DNS lookups of connection addresses, made by Shizuku's helper.

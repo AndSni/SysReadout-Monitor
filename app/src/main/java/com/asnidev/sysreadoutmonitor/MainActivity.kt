@@ -82,7 +82,15 @@ class MainActivity : ComponentActivity() {
     private fun dnsMonitor(on: Boolean) {
         if (!on) return vm.setDnsMonitor(false)
         val ask = DnsVpnService.consentIntent(this)
-        if (ask == null) vm.setDnsMonitor(true) else vpnConsent.launch(ask)
+        if (ask == null) {
+            vm.setDnsMonitor(true)
+        } else {
+            // Some builds have no VPN consent screen; there the monitor just stays off.
+            try {
+                vpnConsent.launch(ask)
+            } catch (_: ActivityNotFoundException) {
+            }
+        }
     }
 
     /** The same grant flows as the launcher: nothing is asked for until the user taps what needs it. */

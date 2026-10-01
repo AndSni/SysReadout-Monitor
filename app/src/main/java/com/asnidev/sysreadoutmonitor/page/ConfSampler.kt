@@ -105,7 +105,7 @@ class ConfSampler(private val env: Env) : PageSampler {
         set("forked_from", link("SysReadout Launcher", Tap.Url(UPSTREAM)))
         set("font", link("Hack 3.003 (MIT + Bitstream Vera)", Tap.Conf(ConfAction.License(HACK))))
         if (HACK in env.openLicences) license("licenses/Hack-LICENSE.md").forEach { out += it }
-        set("libraries", listOf(Span("Shizuku API, AndroidX, Kotlin (Apache-2.0)")))
+        set("libraries", listOf(Span("Shizuku API (MIT); AndroidX, Kotlin (Apache-2.0)")))
         return out
     }
 

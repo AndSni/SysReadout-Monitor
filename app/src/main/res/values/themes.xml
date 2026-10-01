@@ -4,7 +4,7 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
-    <!-- Konsole "Breeze" background and foreground. -->
+    <!-- Konsole "Breeze" background, and its intense foreground (the blue of keys) for the icon. -->
     <color name="bg">#FF232627</color>
-    <color name="icon_fg">#FFFCFCFC</color>
+    <color name="icon_fg">#FF3DAEE9</color>
 </resources>

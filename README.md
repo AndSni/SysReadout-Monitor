@@ -71,9 +71,9 @@ are requested at that moment.
 
 No ads, no analytics, no tracking, no accounts. Everything is read on the phone and kept in memory
 while the app runs; only your settings are stored. Nothing is sent anywhere: the only network use
-is the optional DNS monitor passing your apps' own lookups on to your DNS server (Quad9 or
-Cloudflare only if the network names none), and optional reverse-DNS lookups of connection
-addresses.
+is the optional DNS monitor passing your apps' own lookups on to the DNS server your network
+names (never to a public resolver of our choosing), and optional reverse-DNS lookups of
+connection addresses.
 
 ## Build
 
@@ -97,9 +97,9 @@ keyAlias=sysreadoutmonitor
 keyPassword=…   # PKCS12 keystores: same as storePassword
 ```
 
-Without it, `assembleRelease` falls back to the debug key. CI gets the same values from repository
-secrets (`RELEASE_KEYSTORE_B64`, `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`,
-`RELEASE_KEY_PASSWORD`).
+Without it, `assembleRelease` leaves the APK unsigned, as F-Droid's build server expects. CI gets
+the same values from repository secrets (`RELEASE_KEYSTORE_B64`, `RELEASE_KEYSTORE_PASSWORD`,
+`RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`).
 
 ### Releasing a version
 
@@ -122,8 +122,10 @@ Signing certificate SHA-256: `3b69c2d7c54417c453b4c676f23e36119374a68e1109c323a0
   font 3.003 (MIT with the Bitstream Vera licence, see
   [`app/src/main/assets/licenses`](app/src/main/assets/licenses), also in the app under
   `conf › [about]`).
-- [Shizuku](https://github.com/RikkaApps/Shizuku) API (Apache-2.0), AndroidX and Jetpack Compose
+- [Shizuku](https://github.com/RikkaApps/Shizuku-API) API (MIT), AndroidX and Jetpack Compose
   (Apache-2.0), Kotlin (Apache-2.0).
+- The app icon is SysReadout Launcher's CRT tube; its "SM" is drawn from the glyphs of
+  VT323 by Peter Hull (SIL Open Font License 1.1).
 
 ## License
 

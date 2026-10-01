@@ -76,8 +76,9 @@ fun MonitorScreen(vm: MonitorViewModel, onTap: (Tap) -> Unit) {
         }
         val measurer = rememberTextMeasurer()
         val density = LocalDensity.current
-        // Hack is monospaced: one character's advance gives the number of columns.
-        val charWidth = remember(style) { measurer.measure("0".repeat(SAMPLE), style).size.width / SAMPLE.toFloat() }
+        // Hack is monospaced: one character's advance gives the number of columns. Display size
+        // changes reach us without a restart (configChanges density); the measurer is new then.
+        val charWidth = remember(style, measurer) { measurer.measure("0".repeat(SAMPLE), style).size.width / SAMPLE.toFloat() }
 
         TabStrip(pages, pager.currentPage) { scope.launch { pager.animateScrollToPage(it) } }
         BoxWithConstraints(
